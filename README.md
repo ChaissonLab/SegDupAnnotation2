@@ -2,7 +2,8 @@
 
 ## Overview
 
-SegDupAnnotation2 is a snakemake workflow designed to count gene duplications given PacBio reads, genome assembly, and a gene model.
+SegDupAnnotation2 is a snakemake workflow designed to count gene duplications given PacBio reads, genome assembly, and a gene model.  
+Successor to [SegDupAnnotation](https://github.com/ChaissonLab/SegDupAnnotation).
 
 ## System Requirements
 
