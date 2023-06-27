@@ -44,7 +44,7 @@ results/G03\_per\_gene\_counts.bed
 | copyCount | Number of total gene copies - resolved plus collapsed. |
 | resolvedCount | Number of resolved gene copies. |
 
-results/G04\_summary\_stats.tsv
+results/G04\_summary\_stats.tsv  
 Contains tab delimited summary statistics.
 
 ## Tips
