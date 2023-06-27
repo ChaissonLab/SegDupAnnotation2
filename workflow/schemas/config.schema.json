@@ -1,7 +1,7 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "SegDupAnnotation Configurations",
-    "description": "Config file for SegDupAnnotation used to annotate segmental duplications in a given species.",
+    "title": "SegDupAnnotation2 Configurations",
+    "description": "Config file for SegDupAnnotation2 used to annotate segmental duplications in a given species.",
     "type": "object",
     "properties": {
         "species": {
@@ -9,7 +9,7 @@
             "type": "string"
         },
         "reads_bam": {
-            "description": "List of paths to read files in bam format. Must all be either CCS or CLR (mixing of PacBio read types is not supported).",
+            "description": "List of paths to read files in bam format.",
             "type": "array",
             "items": {
                 "type": "string"
@@ -22,17 +22,17 @@
             ] ]
         },
         "asm": {
-            "description": "Filepath to assembly of this species/individual's genome in fasta format.",
+            "description": "File path to assembly of this species/individual's genome in fasta format.",
             "type": "string",
             "examples": [ "/scratch1/krabbani/data/raw_bTaeGut2/bTaeGut2.hic.hap1.s2.fasta" ]
         },
         "genemodel": {
-            "description": "Fasta filepath of RNA transcripts of chosen gene model. Assumes default refseq format where gene code is in paranthesis, and parses fasta headers to find gene codes. If this is not true, fasta must be reformatted with header as gene code only.",
+            "description": "Fasta file path of RNA transcripts of chosen gene model. Assumes default refseq format where gene code is in paranthesis, and parses fasta headers to find gene codes. If this is not true, fasta must be reformatted with header as gene code only.",
             "type": "string",
             "examples": [ "/scratch1/krabbani/data/taeGut2/GCF_003957565.2_bTaeGut1.4.pri_rna.fna" ]
         },
         "temp": {
-            "description": "Filepath to an existing directory for temporary files.",
+            "description": "File path to an existing directory for temporary files.",
             "type": "string",
             "examples": [ "/scratch2/krabbani/sda_tmp/tmp_bTaeGut2_finch" ]
         },
@@ -85,13 +85,13 @@
             "default": true
         },
         "flag_assume_clear_and_unique_gene_codes": {
-            "description": "When false, ",
+            "description": "When false, assumes gene model fasta headers are in default RefSeq format, and thus renames all headers based on gene symbol in parenthesis at end of header line.",
             "type": "boolean",
             "examples": [ true, false],
             "default": true
         },
         "flag_filt_uncharacterized_genes": {
-            "description": "When true filters genes in gene model with gene names beginning with 'LOC'.",
+            "description": "When true filters out genes in gene model with gene names beginning with 'LOC'.",
             "type": "boolean",
             "examples": [ true, false],
             "default": true
@@ -129,9 +129,6 @@
         "reads_bam",
         "asm",
         "genemodel",
-        "temp",
-        "grid_large",
-        "grid_medium",
-        "grid_small"
+        "temp"
     ]
 }
