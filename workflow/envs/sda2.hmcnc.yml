@@ -1,0 +1,15 @@
+name: sda2_main_env
+channel_priority: flexible
+# Conda may fail in solving environment if channel_priority is set to strict.
+# If it fails, check your ~/.condarc config file's channel_priority param.
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+  - anaconda
+dependencies:
+  - snakemake # 5.1
+  - boost # 1.82.0
+  - intervaltree # 3.0.2
+  - tabix # 1.11
+# Version nums commented out following dependencies are versions used by authors.

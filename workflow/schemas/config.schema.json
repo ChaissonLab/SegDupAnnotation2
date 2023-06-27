@@ -1,0 +1,137 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "SegDupAnnotation Configurations",
+    "description": "Config file for SegDupAnnotation used to annotate segmental duplications in a given species.",
+    "type": "object",
+    "properties": {
+        "species": {
+            "description": "The name, code, or identifier for the species or individual being processed.",
+            "type": "string"
+        },
+        "reads_bam": {
+            "description": "List of paths to read files in bam format. Must all be either CCS or CLR (mixing of PacBio read types is not supported).",
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "minItems": 1,
+            "uniqueItems": true,
+            "examples": [ [
+                "/scratch1/krabbani/data/raw_bTaeGut2/m54306U_210519_154448.hifi_reads.bam",
+                "/scratch1/krabbani/data/raw_bTaeGut2/m54306U_210521_004211.hifi_reads.bam"
+            ] ]
+        },
+        "asm": {
+            "description": "Filepath to assembly of this species/individual's genome in fasta format.",
+            "type": "string",
+            "examples": [ "/scratch1/krabbani/data/raw_bTaeGut2/bTaeGut2.hic.hap1.s2.fasta" ]
+        },
+        "genemodel": {
+            "description": "Fasta filepath of RNA transcripts of chosen gene model. Assumes default refseq format where gene code is in paranthesis, and parses fasta headers to find gene codes. If this is not true, fasta must be reformatted with header as gene code only.",
+            "type": "string",
+            "examples": [ "/scratch1/krabbani/data/taeGut2/GCF_003957565.2_bTaeGut1.4.pri_rna.fna" ]
+        },
+        "temp": {
+            "description": "Filepath to an existing directory for temporary files.",
+            "type": "string",
+            "examples": [ "/scratch2/krabbani/sda_tmp/tmp_bTaeGut2_finch" ]
+        },
+        "read_type": {
+            "description": "Note PacBio read technology type (CLR vs CCS). Used for metadata purposes only.",
+            "type": "string",
+            "enum": [ "CCS", "CLR" ],
+            "examples": [ "CCS", "CLR" ]
+        },
+        "sex_chr": {
+            "description": "List of sex chromosome names in given assembly.",
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "minItems": 0,
+            "uniqueItems": true,
+            "examples": [ [
+                "NC_064848.1",
+                "NC_064856.1"
+            ], [
+                "SUPER_W",
+                "SUPER_Z"
+            ] ]
+        },
+        "min_copy_identity": {
+            "description": "Minimum gene copy identity to keep when the gene copy is compared to the original copy.",
+            "type": "number",
+            "default": 0.90
+        },
+        "min_hit_length": {
+            "description": "Minimum hit length to keep in bases.",
+            "type": "integer",
+            "default": 5000
+        },
+        "max_length_margin": {
+            "description": "Keep gene copies with length within <max_length_margin> of the original gene's length.",
+            "type": "number",
+            "default": 0.10
+        },
+        "min_depth": {
+            "description": "Minimum mean copy depth to keep as percentage of mean assembly depth.",
+            "type": "number",
+            "default": 0.05
+        },
+        "flag_filt_single_exon_genes": {
+            "description": "When true keeps only genes with multiple exons.",
+            "type": "boolean",
+            "examples": [ true, false],
+            "default": true
+        },
+        "flag_assume_clear_and_unique_gene_codes": {
+            "description": "When false, ",
+            "type": "boolean",
+            "examples": [ true, false],
+            "default": true
+        },
+        "flag_filt_uncharacterized_genes": {
+            "description": "When true filters genes in gene model with gene names beginning with 'LOC'.",
+            "type": "boolean",
+            "examples": [ true, false],
+            "default": true
+        },
+        "flag_allow_overlapping_genes": {
+            "description": "When false group overlapping genes using network based approach.",
+            "type": "boolean",
+            "examples": [ true, false],
+            "default": true
+        },
+        "flag_filtered": {
+            "description": "Retain and calculate depth for all genes even those that don't meet filter minimums.",
+            "type": "boolean",
+            "examples": [ true, false],
+            "default": false
+        },
+        "grid_large": {
+            "description": "Generic SLURM paramaters for running certain rules that are computationally intense.",
+            "type": "string",
+            "examples": [ "sbatch -c 16 --mem=48G --time=24:00:00 --partition=qcb --account=mchaisso_100 --output=slurm-logs/slurm-%j.out" ]
+        },
+        "grid_medium": {
+            "description": "Generic SLURM paramaters for running certain rules that are computationally mild.",
+            "type": "string",
+            "examples": [ "sbatch -c 4 --mem=6G --time=24:00:00 --partition=qcb --account=mchaisso_100 --output=slurm-logs/slurm-%j.out" ]
+        },
+        "grid_small": {
+            "description": "Generic SLURM paramaters for running certain rules that are not computationally intense.",
+            "type": "string",
+            "examples": [ "sbatch -c 1 --mem=1G --time=4:00:00 --partition=qcb --account=mchaisso_100 --output=slurm-logs/slurm-%j.out" ]
+        }
+    },
+    "required": [
+        "species",
+        "reads_bam",
+        "asm",
+        "genemodel",
+        "temp",
+        "grid_large",
+        "grid_medium",
+        "grid_small"
+    ]
+}
