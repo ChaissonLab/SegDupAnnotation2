@@ -1,0 +1,3 @@
+[submodule "workflow/scripts/hmcnc"]
+	path = workflow/scripts/hmcnc
+	url = https://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@github.com/ChaissonLab/hmcnc
