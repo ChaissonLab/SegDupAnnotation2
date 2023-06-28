@@ -38,7 +38,8 @@ rule all:
         "results/G01_dups.bed",
         "results/G02_dups_fact.bed",
         "results/G03_per_gene_counts.bed",
-        "results/G04_summary_stats.tsv"
+        "results/G04_summary_stats.tsv",
+        "results/G05_depthPlot_merged.pdf"
     localrule: True
 
 onsuccess:

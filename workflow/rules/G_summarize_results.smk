@@ -56,11 +56,6 @@ rule G02_GeneCountFact:
     }} 2>> {log}
     """
 
-# og summary rules to reference TODO:
-# - rule DupDepthPerGeneSummary
-# - rule DupDepthPerGeneCoipy
-# - rule SummaryStats
-
 rule G03_PerGeneCounts:
     input:
         dups="results/G01_dups.bed",
@@ -151,5 +146,64 @@ collapsed_duplicated_gene_count\\t$collapsedGeneCount\\n\
 bases_in_collapsed_genes\\t$collapsedBasesInGenes\\n\
 resolved_bases_in_collapsed_genes\\t$resolvedBasesinCollapsedGenes\\n\
 Total_collapsed_bases\\t$collapsedBasesTotal" > {output.summary}
+    }} 2>> {log}
+    """
+
+rule G05_SummaryFigs:
+    input:
+        dups="results/G01_dups.bed",
+        mean="results/B03_asm_mean_cov.txt",
+    output:
+        comboTmp=temp("results/G05_dups.tsv"),
+        resTmp=temp("results/G05_dups_resolved.tsv"),
+        colTmp=temp("results/G05_dups_collapsed.tsv"),
+        plot_combo="results/G05_depthPlot_combo.pdf",
+        plot_res="results/G05_depthPlot_res.pdf",
+        plot_col="results/G05_depthPlot_col.pdf",
+        plot_merged="results/G05_depthPlot_merged.pdf",
+    params:
+        workflowDir=workflow.basedir
+    localrule: True
+    conda: "../envs/sda2.r.yml"
+    log: "logs/G05_SummaryFigs.log"
+    benchmark: "benchmark/G05_SummaryFigs.tsv"
+    shell:"""
+    {{
+        echo "##### G05_SummaryFigs" > {log}
+        echo "### Reformat inputs" >> {log}
+        # Below assumes sorted by gene name
+        cat {input.dups} | \
+            awk 'BEGIN {{OFS="\\t"; gene=""; gene_num=0}} \
+                (NR==1) \
+                    {{print "gene_num",$0}} \
+                (NR>1) \
+                    {{if (gene!=$4) \
+                        {{geneNum+=1}} \
+                    gene=$4; \
+                    print geneNum,$0}}' | \
+            tr -d '#' > {output.comboTmp}
+        cat {input.dups} | \
+            awk 'BEGIN {{OFS="\\t"; gene=""; gene_num=0}} \
+                (NR==1) \
+                    {{print "gene_num",$0}} \
+                (NR>1 && $13<=1) \
+                    {{if (gene!=$4) \
+                        {{geneNum+=1}} \
+                    gene=$4; \
+                    print geneNum,$0}}' | \
+            tr -d '#' > {output.resTmp}
+        cat {input.dups} | \
+            awk 'BEGIN {{OFS="\\t"; gene=""; gene_num=0}} \
+                (NR==1) \
+                    {{print "gene_num",$0}} \
+                (NR>1 && $13>1) \
+                    {{if (gene!=$4) \
+                        {{geneNum+=1}} \
+                    gene=$4; \
+                    print geneNum,$0}}' | \
+            tr -d '#' > {output.colTmp}
+
+        echo "### Generate figs" >> {log}
+        Rscript {params.workflowDir}/scripts/G05_SummaryFigs.R {params.workflowDir} {output.comboTmp} {output.resTmp} {output.colTmp}
     }} 2>> {log}
     """
