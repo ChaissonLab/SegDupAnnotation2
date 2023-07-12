@@ -1,17 +1,15 @@
-# SegDupAnnotation2
+# Snakemake Workflow: SegDupAnnotation2
 
 ## Overview
 
 SegDupAnnotation2 is a snakemake workflow designed to count gene duplications given PacBio reads, genome assembly, and a gene model.  
 Successor to [SegDupAnnotation](https://github.com/ChaissonLab/SegDupAnnotation).
-
-## System Requirements
-
-TODO
+  
+Warning: This workflow is under active development and should not yet be assumed to be a final or portable tool.
 
 ## Installation
 
-Clone github repository. Create configuration file per config/README.md specifications. Then run `snakemake -c 1 -j 250 --use-conda` or  `snakemake -c 1 -j 250 --cluster "{params.grid_opts}" --use-conda -k`.
+Clone github repository. Create configuration file per config/README.md specifications. Then run `snakemake -c 1 -j 250 --use-conda` or  `snakemake -c 1 -j 250 --cluster "{params.grid_opts}" --use-conda -k`. This snakefile depends on [hmcnc](https://github.com/ChaissonLab/hmcnc/tree/ef8ae26e72830ed7433b8c14ffd2158f7c5ccb9e), an HMM based copy number caller which for the moment must be compiled first before use.
 
 ## Salient Output File Specifications
 
@@ -19,12 +17,12 @@ results/G01\_dups.bed
 | Column | Description |
 | --- | ------ |
 | #chr | Gene copy's position in assembly. |
-| start | |
-| end | |
+| start | ^ |
+| end | ^ |
 | gene | Gene name. |
 | orig\_chr | Position of gene copy's original copy in assembly. |
-| orig\_start |  |
-| orig\_end | |
+| orig\_start | ^ |
+| orig\_end | ^ |
 | strand | Strand on which gene copy is on: 0 for 'Original', '1' for reverse. |
 | p\_identity | Similarity to 'Original' gene calculated as: #matches/(#matches+#mismatches+#insertion\_events+#deletion\_events) |
 | p\_accuracy | Similarity to 'Original' gene calculated as : #matches/(#matches+#mismatches+#insertions+#deletions) |
@@ -34,6 +32,7 @@ results/G01\_dups.bed
 | copy\_num | Rounded depth value. |
 | depth\_by\_vcf | Copy number as determined by hmm's vcf output. |
 
+  
 results/G03\_per\_gene\_counts.bed
 | Column | Description |
 | --- | ------ |
@@ -44,6 +43,7 @@ results/G03\_per\_gene\_counts.bed
 | copyCount | Number of total gene copies - resolved plus collapsed. |
 | resolvedCount | Number of resolved gene copies. |
 
+  
 results/G04\_summary\_stats.tsv  
 Contains tab delimited summary statistics.
 
