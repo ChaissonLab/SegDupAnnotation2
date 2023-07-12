@@ -12,7 +12,7 @@ from snakemake.utils import validate
 from snakemake.utils import min_version
 
 ### Workflow Configurations
-min_version("5.1") # Created using Snakemake v7.25.0
+min_version("7.25.0") # Created using Snakemake v7.25.0
 
 configfile: "config/sd_analysis.json"
 validate(config, "schemas/config.schema.json", set_default=True) # TODO add xlarge to validation? (used for samtools sort)
