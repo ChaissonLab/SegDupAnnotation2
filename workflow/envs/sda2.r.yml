@@ -1,5 +1,4 @@
 name: sda2_r_env
-channel_priority: flexible
 # Conda may fail in solving environment if channel_priority is set to strict.
 # If it fails, check your ~/.condarc config file's channel_priority param.
 channels:
@@ -7,7 +6,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - snakemake # 5.1.0
+  - snakemake>=7.25.0 # 7.25.0
   - r-base # 4.1.1
   - r-ggplot2 # 3.4.1
   - r-gridextra # 2.3
