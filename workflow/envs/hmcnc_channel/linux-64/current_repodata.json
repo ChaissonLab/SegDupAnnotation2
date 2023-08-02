@@ -1,0 +1,28 @@
+{
+  "info": {
+    "subdir": "linux-64"
+  },
+  "packages": {
+    "hmcnc-1.0-h2bc3f7f_1.tar.bz2": {
+      "build": "h2bc3f7f_1",
+      "build_number": 1,
+      "depends": [
+        "boost",
+        "htslib >=1.18,<1.19.0a0",
+        "libgcc-ng >=12",
+        "libstdcxx-ng >=12",
+        "libzlib >=1.2.13,<1.3.0a0"
+      ],
+      "md5": "2869c96ff51cfb578f8b29b3c787fc54",
+      "name": "hmcnc",
+      "sha256": "b1e4fdd339e1c2b74d77b8bcd29fbe98605b98085e89f6812dc055a82fdcba6e",
+      "size": 46754239,
+      "subdir": "linux-64",
+      "timestamp": 1690605392393,
+      "version": "1.0"
+    }
+  },
+  "packages.conda": {},
+  "removed": [],
+  "repodata_version": 1
+}

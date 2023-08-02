@@ -9,7 +9,7 @@ Warning: This workflow is under active development and should not yet be assumed
 
 ## Installation
 
-Clone github repository. Create configuration file per config/README.md specifications. Then run `snakemake -c 1 -j 250 --use-conda` or  `snakemake -c 1 -j 250 --cluster "{params.grid_opts}" --use-conda -k`. This snakefile depends on [hmcnc](https://github.com/ChaissonLab/hmcnc/tree/ef8ae26e72830ed7433b8c14ffd2158f7c5ccb9e), an HMM based copy number caller which for the moment must be compiled first before use.
+Clone github repository. Create configuration file per config/README.md specifications. Then run `snakemake -c 1 -j 250 --use-conda` or  `snakemake -c 1 -j 250 --cluster "{params.grid_opts}" --use-conda -k`.
 
 ## Salient Output File Specifications
 

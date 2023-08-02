@@ -12,8 +12,7 @@ rule B01_RunHmm:
        snvs="results/B01_hmm/B01_snvs.tsv"
     params:
         grid_opts=config["grid_large"],
-        alt_cpus_on_node=4,
-        workflowDir=workflow.basedir
+        alt_cpus_on_node=4
     conda: "../envs/sda2.hmcnc.yml"
     log: "logs/B01_RunHmm.log"
     benchmark: "benchmark/B01_RunHmm.tsv"
@@ -30,7 +29,7 @@ rule B01_RunHmm:
         echo "CPUs on node: $cpus_on_node" >> {log}
 
         echo "### Run HMM" >> {log}
-        {params.workflowDir}/scripts/hmcnc/src/hmmcnc {input.asm} -a {input.bam} -t $cpus_on_node -B {output.cov} -S {output.snvs} -o {output.vcf}
+        hmmcnc {input.asm} -a {input.bam} -t $cpus_on_node -B {output.cov} -S {output.snvs} -o {output.vcf}
 
         echo "### Sort and Index Output" >> {log}
         cat {output.cov} | \

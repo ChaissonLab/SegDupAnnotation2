@@ -4,7 +4,7 @@ name: sda2_r_env
 channels:
   - bioconda
   - conda-forge
-  - defaults
+  - nodefaults
 dependencies:
   - snakemake>=7.25.0 # 7.25.0
   - r-base # 4.1.1

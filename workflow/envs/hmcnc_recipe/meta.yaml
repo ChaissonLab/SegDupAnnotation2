@@ -1,0 +1,34 @@
+package:
+  name: hmcnc
+  version: 1.0
+
+source:
+  path: hmcnc
+
+build:
+  number: 1
+
+requirements:
+  build:
+    - make # probs unnecessary
+      #- {{ compiler('c') }} # probs unnecessary
+    - {{ compiler('cxx') }}
+    - boost
+    - htslib
+  host:
+    - boost
+    - intervaltree
+    - tabix
+      #- scipy
+    - htslib # probs unnecessary
+    - zlib # probs unnecessary
+  run:
+    - boost
+    - intervaltree
+    - tabix
+      #- scipy
+    - htslib # probs unnecessary
+
+#test:
+#  commands:
+#    - hmmcnc | grep 'Usage'

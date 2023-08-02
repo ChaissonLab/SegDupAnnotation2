@@ -1,10 +1,10 @@
-name: sda2_main_env
+name: sda2_python_env
 # Conda may fail in solving environment if channel_priority is set to strict.
 # If it fails, check your ~/.condarc config file's channel_priority param.
 channels:
   - bioconda
   - conda-forge
-  - defaults
+  - nodefaults
 dependencies:
   - snakemake>=7.25.0 # 7.25.0
   - samtools # 1.12
