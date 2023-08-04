@@ -4,7 +4,7 @@ name: sda2_hmcnc_env
 channels:
   - bioconda
   - conda-forge
-  - file:///project/mchaisso_100/cmb-16/krabbani/git/SegDupAnnotation2/workflow/envs/hmcnc_channel
+  - krabbani
   - nodefaults
 dependencies:
   - bioconda::snakemake>=7.25.0 # 7.25.0
