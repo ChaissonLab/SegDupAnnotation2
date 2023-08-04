@@ -10,25 +10,25 @@ build:
 
 requirements:
   build:
-    - make # probs unnecessary
-      #- {{ compiler('c') }} # probs unnecessary
+    - make
     - {{ compiler('cxx') }}
     - boost
     - htslib
   host:
     - boost
-    - intervaltree
-    - tabix
-      #- scipy
-    - htslib # probs unnecessary
-    - zlib # probs unnecessary
+    - htslib
+    - zlib
   run:
     - boost
-    - intervaltree
-    - tabix
-      #- scipy
-    - htslib # probs unnecessary
+    - htslib
 
-#test:
-#  commands:
-#    - hmmcnc | grep 'Usage'
+test:
+  commands:
+    - hmmcnc --help | grep 'Usage'
+
+about:
+  home: https://github.com/ChaissonLab/hmcnc/tree/ef8ae26e72830ed7433b8c14ffd2158f7c5ccb9e
+  summary: Hidden Markov Copy Number Caller
+
+extra:
+  built_for: https://github.com/ChaissonLab/SegDupAnnotation2

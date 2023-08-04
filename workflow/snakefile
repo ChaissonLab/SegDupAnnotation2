@@ -42,6 +42,8 @@ rule all:
         "results/G05_depthPlot_merged.pdf"
     localrule: True
 
+onstart:
+    print("Workflow started.")
 onsuccess:
     print("Workflow finished without error.")
 onerror:

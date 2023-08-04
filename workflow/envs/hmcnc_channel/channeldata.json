@@ -9,7 +9,7 @@
       "dev_url": null,
       "doc_source_url": null,
       "doc_url": null,
-      "home": null,
+      "home": "https://github.com/ChaissonLab/hmcnc/tree/ef8ae26e72830ed7433b8c14ffd2158f7c5ccb9e",
       "icon_hash": null,
       "icon_url": null,
       "identifiers": null,
@@ -25,10 +25,10 @@
       "subdirs": [
         "linux-64"
       ],
-      "summary": null,
+      "summary": "Hidden Markov Copy Number Caller",
       "tags": null,
       "text_prefix": false,
-      "timestamp": 1690605392,
+      "timestamp": 1691120584,
       "version": "1.0"
     }
   },
