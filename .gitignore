@@ -1,1 +1,3 @@
-workflow/scripts/hmcnc/src/hmmcnc
+workflow/envs/Dockerfile
+workflow/envs/hmcnc_channel
+workflow/envs/hmcnc_recipe
