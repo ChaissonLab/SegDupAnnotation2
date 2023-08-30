@@ -1,15 +1,19 @@
-# Snakemake Workflow: SegDupAnnotation2
+# Snakemake Workflow: `SegDupAnnotation2`
+
+[![Snakemake](https://img.shields.io/badge/snakemake-≥7.25.0-brightgreen.svg)](https://snakemake.github.io)
 
 ## Overview
 
-SegDupAnnotation2 is a snakemake workflow designed to count gene duplications given PacBio reads, genome assembly, and a gene model.  
+A snakemake workflow for counting gene duplications given PacBio reads, a genome assembly, and a gene model.  
 Successor to [SegDupAnnotation](https://github.com/ChaissonLab/SegDupAnnotation).
   
 Warning: This workflow is under active development and should not yet be assumed to be a final or portable tool.
 
-## Installation
+## Usage
 
-Clone github repository. Create configuration file per config/README.md specifications. Then run `snakemake -c 1 -j 250 --use-conda` or  `snakemake -c 1 -j 250 --cluster "{params.grid_opts}" --use-conda -k`.
+Clone github repository. Create configuration file per config/README.md specifications. Then run `snakemake -c 1 -j 250 --use-conda`, `snakemake -c 1 -j 250 --cluster "{params.grid_opts}" --use-conda -k`, or `snakemake -c 1 -j 250 --use-singularity --use-conda --singularity-args " --bind /scratch2/krabbani/ " -k`. When using with singularity, don't forget to bind paths of input files per the given config file.
+
+The usage of this workflow is described in the [Snakemake Workflow Catalog](https://snakemake.github.io/snakemake-workflow-catalog/?usage=ChaissonLab%2FSegDupAnnotation2).
 
 ## Salient Output File Specifications
 
