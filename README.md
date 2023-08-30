@@ -13,7 +13,7 @@ Warning: This workflow is under active development and should not yet be assumed
 
 Clone github repository. Create configuration file per config/README.md specifications. Then run `snakemake -c 1 -j 250 --use-conda`, `snakemake -c 1 -j 250 --cluster "{params.grid_opts}" --use-conda -k`, or `snakemake -c 1 -j 250 --use-singularity --use-conda --singularity-args " --bind /scratch2/krabbani/ " -k`. When using with singularity, don't forget to bind paths of input files per the given config file.
 
-The usage of this workflow is described in the [Snakemake Workflow Catalog](https://snakemake.github.io/snakemake-workflow-catalog/?usage=ChaissonLab%2FSegDupAnnotation2).
+The usage of this workflow is described in the [Snakemake Workflow Catalog](https://snakemake.github.io/snakemake-workflow-catalog/?usage=snakemake-workflows%2FSegDupAnnotation2).
 
 ## Salient Output File Specifications
 
