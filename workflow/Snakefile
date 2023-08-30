@@ -1,0 +1,66 @@
+##### Segmental Duplication Annotation Pipeline for Vertebrate Genomes
+#####
+##### Keon Rabbani
+##### krabbani@usc.edu
+##### Chaisson Lab
+##### University of Southern California
+
+##### Purpose: Count resolved and collapsed gene duplications in vertebrate species.
+
+### Import Libraries
+from snakemake.utils import validate
+from snakemake.utils import min_version
+
+### Workflow Configurations
+min_version("7.25.0") # Created using Snakemake v7.25.0
+
+configfile: "config/sd_analysis.json"
+validate(config, "schemas/config.schema.json", set_default=True) # TODO add xlarge to validation? (used for samtools sort)
+
+containerized: "docker://krabbani/segdupannotation2:1.0.s"
+
+### Variables & Constants
+species=config["species"]
+tmpDir=config["temp"]
+bamFiles={f.split("/")[-1]: f for f in config["reads_bam"]}
+catchFilt=config["flag_filtered"] # TODO Unused param
+
+### Load Rules
+include: "rules/A_process_reads.smk"
+include: "rules/B_hmm.smk"
+include: "rules/C_process_gene_model.smk"
+include: "rules/D_locate_resolved_gene_originals.smk"
+include: "rules/E_locate_resolved_gene_copies.smk"
+include: "rules/F_combine_genes_and_depth.smk"
+include: "rules/G_summarize_results.smk"
+
+### Target Rules
+rule all:
+    input:
+        "results/G01_dups.bed",
+        "results/G02_dups_fact.bed",
+        "results/G03_per_gene_counts.bed",
+        "results/G04_summary_stats.tsv",
+        "results/G05_depthPlot_merged.pdf"
+    localrule: True
+
+onstart:
+    print("Workflow started.")
+onsuccess:
+    print("Workflow finished without error.")
+onerror:
+    print("An error occurred. Check the .snakemake/log/ directory, the logs/ directory, and any cluster logs for details.")
+
+
+
+## Test runs: TODO DeleteMe
+# cd /project/mchaisso_100/cmb-16/krabbani/git/SegDupAnnotation2
+# snakemake -p -c 2 -j 4 --cluster "{params.grid_opts}" --use-conda
+# snakemake -c 1 -j 1 --cluster "{params.grid_opts}" -k
+# snakemake -c 3 -j 250 --cluster "{params.grid_opts}" -k
+# snakemake -c 24 -j 250 --cluster "{params.grid_opts}" -k
+# rm -i results/* logs/*
+
+
+
+
