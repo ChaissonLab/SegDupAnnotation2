@@ -10,4 +10,5 @@ dependencies:
   - samtools>=1.11 # 1.17
   - bedtools # 2.30.0
   - minimap2 # 2.22
+  - bc # 1.06.95
 # Version nums commented out following dependencies are versions used by authors.

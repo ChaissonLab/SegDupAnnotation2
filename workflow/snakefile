@@ -17,6 +17,8 @@ min_version("7.25.0") # Created using Snakemake v7.25.0
 configfile: "config/sd_analysis.json"
 validate(config, "schemas/config.schema.json", set_default=True) # TODO add xlarge to validation? (used for samtools sort)
 
+containerized: "docker://krabbani/segdupannotation2:1.0.s"
+
 ### Variables & Constants
 species=config["species"]
 tmpDir=config["temp"]

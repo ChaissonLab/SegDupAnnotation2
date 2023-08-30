@@ -1,6 +1,6 @@
 FROM condaforge/mambaforge:latest
 LABEL io.github.snakemake.containerized="true"
-LABEL io.github.snakemake.conda_env_hash="6206f51b78be89366a80e485e7b52728a92112ca53c59868f211adeebee3e7c7"
+LABEL io.github.snakemake.conda_env_hash="68f4a0a532290faf74cac5f524a22e48bd946c6399bc08e9dbc960b8ba6513d9"
 
 # Step 1: Retrieve conda environments
 
@@ -27,7 +27,7 @@ COPY workflow/envs/sda2.hmcnc.yml /conda-envs/f0c1b13e61342ffac5c089dc49cc57c0/e
 
 # Conda environment:
 #   source: workflow/envs/sda2.main.yml
-#   prefix: /conda-envs/78e0579661129ebd76bf4ba9ac9f8707
+#   prefix: /conda-envs/913f94761a68ac0cb136abeddb1576dc
 #   name: sda2_main_env
 #   # Conda may fail in solving environment if channel_priority is set to strict.
 #   # If it fails, check your ~/.condarc config file's channel_priority param.
@@ -40,9 +40,10 @@ COPY workflow/envs/sda2.hmcnc.yml /conda-envs/f0c1b13e61342ffac5c089dc49cc57c0/e
 #     - samtools>=1.11 # 1.17
 #     - bedtools # 2.30.0
 #     - minimap2 # 2.22
+#     - bc # 1.06.95
 #   # Version nums commented out following dependencies are versions used by authors.
-RUN mkdir -p /conda-envs/78e0579661129ebd76bf4ba9ac9f8707
-COPY workflow/envs/sda2.main.yml /conda-envs/78e0579661129ebd76bf4ba9ac9f8707/environment.yaml
+RUN mkdir -p /conda-envs/913f94761a68ac0cb136abeddb1576dc
+COPY workflow/envs/sda2.main.yml /conda-envs/913f94761a68ac0cb136abeddb1576dc/environment.yaml
 
 # Conda environment:
 #   source: workflow/envs/sda2.python.yml
@@ -89,7 +90,7 @@ COPY workflow/envs/sda2.r.yml /conda-envs/a7a4d28aadcd4f144d8dfd3a8ecc712b/envir
 # Step 2: Generate conda environments
 
 RUN mamba env create --prefix /conda-envs/f0c1b13e61342ffac5c089dc49cc57c0 --file /conda-envs/f0c1b13e61342ffac5c089dc49cc57c0/environment.yaml && \
-    mamba env create --prefix /conda-envs/78e0579661129ebd76bf4ba9ac9f8707 --file /conda-envs/78e0579661129ebd76bf4ba9ac9f8707/environment.yaml && \
+    mamba env create --prefix /conda-envs/913f94761a68ac0cb136abeddb1576dc --file /conda-envs/913f94761a68ac0cb136abeddb1576dc/environment.yaml && \
     mamba env create --prefix /conda-envs/a886ae8a033dbbeb9a37b8166c907fe6 --file /conda-envs/a886ae8a033dbbeb9a37b8166c907fe6/environment.yaml && \
     mamba env create --prefix /conda-envs/a7a4d28aadcd4f144d8dfd3a8ecc712b --file /conda-envs/a7a4d28aadcd4f144d8dfd3a8ecc712b/environment.yaml && \
     mamba clean --all -y
