@@ -113,6 +113,11 @@
             "type": "string",
             "examples": [ "sbatch -c 16 --mem=48G --time=24:00:00 --partition=qcb --account=mchaisso_100 --output=slurm-logs/slurm-%j.out" ]
         },
+        "grid_medium2": {
+            "description": "Generic SLURM paramaters for running certain rules that are computationally mild.",
+            "type": "string",
+            "examples": [ "sbatch -c 1 --mem=32G --time=4:00:00 --partition=qcb --account=mchaisso_100 --output=slurm-logs/slurm-%j.out" ]
+        },
         "grid_medium": {
             "description": "Generic SLURM paramaters for running certain rules that are computationally mild.",
             "type": "string",
@@ -122,6 +127,18 @@
             "description": "Generic SLURM paramaters for running certain rules that are not computationally intense.",
             "type": "string",
             "examples": [ "sbatch -c 1 --mem=1G --time=4:00:00 --partition=qcb --account=mchaisso_100 --output=slurm-logs/slurm-%j.out" ]
+        },
+        "override_num_cores": {
+            "description": "Override the default number of available cores. NOT YET IMPLEMENTED! TODO",
+            "type": "integer",
+            "examples": [ 5 ],
+            "default": -1
+        },
+        "override_mem": {
+            "description": "Override the memory available in Mb. NOT YET IMPLEMENTED! TODO",
+            "type": "integer",
+            "examples": [ 4000 ],
+            "default": -1
         }
     },
     "required": [
