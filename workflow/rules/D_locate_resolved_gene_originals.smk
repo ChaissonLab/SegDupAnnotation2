@@ -115,7 +115,7 @@ rule D04_FilterResolvedOriginals_FiltMultiExon:
     shell:"""
     {{
         echo "##### D04_FilterResolvedOriginals_FiltMultiExon" > {log}
-        if [ {params.filt_out_single_exons} = "true" ]
+        if [ {params.filt_out_single_exons} = "True" ]
         then
             echo "### Remove Genes with only a single exon" >> {log}
             cat {input.bed} | \

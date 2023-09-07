@@ -30,7 +30,7 @@ rule C02_SimplifyFastaGeneDefs:
     {{
         # Assumes Gene Code is in last set of parentheses in fasta entry descriptor.
         echo "##### C02_SimplifyFastaGeneDefs" > {log}
-        if [ {params.assumeClearAndUniqueCodes} = "true" ]
+        if [ {params.assumeClearAndUniqueCodes} = "True" ]
         then
             echo "### Do not Simplify Gene Model Gene Defs: create symlink instead." >> {log}
             ln -s {params.workflowDir}/../{input.gm} {params.workflowDir}/../{output.gm_simp}
@@ -83,7 +83,7 @@ rule C03_RemoveUncharacterizedGenes:
     shell:"""
     {{
         echo "##### C03_RemoveUncharacterizedGenes" > {log}
-        if [ {params.filt_uncharacterized} = "true" ]
+        if [ {params.filt_uncharacterized} = "True" ]
         then
             echo "### Remove Uncharacterized Genes" >> {log}
             cat {input.gm} | awk ' \
