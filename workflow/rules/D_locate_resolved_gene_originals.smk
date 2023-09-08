@@ -14,6 +14,7 @@ rule D01_FindResolvedOriginals:
         asm="results/A01_assembly.fasta"
     output:
         bam="results/D01_resolved_originals_prefilt.bam",
+        presort=temp("results/D01_resolved_originals_prefilt_presort.bam"),
         csi="results/D01_resolved_originals_prefilt.bam.csi"
     params:
         grid_opts=config["grid_large"], # TODO Switch all grid_large to grid_minimap?
@@ -43,15 +44,15 @@ rule D01_FindResolvedOriginals:
             echo "Memory per cpu: $mem_per_cpu" >> {log}
             samtools_mem_flag="-m $mem_per_cpu"{params.mem_per_cpu_unit}
         else
-            samtools_mem_flag=""
+            samtools_mem_flag=" "
         fi
 
         echo "### Make Tmp Dir" >> {log}
         tmp_sort_path=`mktemp -d -p {resources.tmpdir} geneModel.sort.XXXX.tmp`
 
         echo "### Minimap Gene Model" >> {log}
-        minimap2 -x splice -a -t "$cpus_on_node" {input.asm} {input.gm} | \
-            samtools sort -T "$tmp_sort_path"/originalHits -@ $(( $cpus_on_node-1 )) -o {output.bam} "$samtools_mem_flag"
+        minimap2 -x splice -a -t "$cpus_on_node" {input.asm} {input.gm} > {output.presort}
+        cat {output.presort} | samtools sort -T "$tmp_sort_path"/originalHits -@ $(( $cpus_on_node-1 )) -o {output.bam} "$samtools_mem_flag" # TODO need to delete samtools_mem_flag var to get this to work via singularity on endeavour2...
 
         echo "### Delete Samtools Sort Tmp Dir and its Contents" >> {log}
         tmp_file_size="$( du -sh $tmp_sort_path )"
