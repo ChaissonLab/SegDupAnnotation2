@@ -54,19 +54,19 @@ rule A03_alignReads:
     {{
         echo "##### A03_alignReads" > {log}
         echo "### Determine Node Variables" >> {log}
-        if [[ -z "$SLURM_CPUS_PER_TASK" ]]
+        if [[ "${{SLURM_CPUS_PER_TASK+defined}}" = defined ]]
         then
-            cpus_on_node={params.alt_cpus_on_node}
-        else
             cpus_on_node="$SLURM_CPUS_PER_TASK"
+        else
+            cpus_on_node={params.alt_cpus_on_node}
         fi
         echo "CPUs on node: $cpus_on_node" >> {log}
 
-        if [[ -z "$SLURM_MEM_PER_NODE" ]]
+        if [[ "${{SLURM_MEM_PER_NODE+defined}}" = defined ]]
         then
-            mem_per_cpu={params.alt_mem_per_cpu}
-        else
             mem_per_cpu="$(echo "($SLURM_MEM_PER_NODE/1.5)/$cpus_on_node" | bc)"
+        else
+            mem_per_cpu={params.alt_mem_per_cpu}
         fi
         echo "Memory per cpu: $mem_per_cpu" >> {log}
 
@@ -99,11 +99,11 @@ rule A04_mergeReads:
     {{
         echo "##### A04_mergeReads" > {log}
         echo "### Determine Node Variables" >> {log}
-        if [[ -z "$SLURM_CPUS_PER_TASK" ]]
+        if [[ "${{SLURM_CPUS_PER_TASK+defined}}" = defined ]]
         then
-            cpus_on_node={params.alt_cpus_on_node}
-        else
             cpus_on_node="$SLURM_CPUS_PER_TASK"
+        else
+            cpus_on_node={params.alt_cpus_on_node}
         fi
         echo "CPUs on node: $cpus_on_node" >> {log}
 
@@ -130,11 +130,11 @@ rule A05_indexBam:
     {{
         echo "##### A05_mergeBams" > {log}
         echo "### Determine Node Variables" >> {log}
-        if [[ -z "$SLURM_CPUS_PER_TASK" ]]
+        if [[ "${{SLURM_CPUS_PER_TASK+defined}}" = defined ]]
         then
-            cpus_on_node={params.alt_cpus_on_node}
-        else
             cpus_on_node="$SLURM_CPUS_PER_TASK"
+        else
+            cpus_on_node={params.alt_cpus_on_node}
         fi
         echo "CPUs on node: $cpus_on_node" >> {log}
 

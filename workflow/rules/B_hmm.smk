@@ -20,11 +20,11 @@ rule B01_RunHmm:
     {{
         echo "##### B01_RunHmm" > {log}
         echo "### Determine Node Variables" >> {log}
-        if [[ -z "$SLURM_CPUS_PER_TASK" ]]
+        if [[ "${{SLURM_CPUS_PER_TASK+defined}}" = defined ]]
         then
-            cpus_on_node={params.alt_cpus_on_node}
-        else
             cpus_on_node="$SLURM_CPUS_PER_TASK"
+        else
+            cpus_on_node={params.alt_cpus_on_node}
         fi
         echo "CPUs on node: $cpus_on_node" >> {log}
 

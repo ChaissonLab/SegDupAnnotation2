@@ -29,21 +29,21 @@ rule D01_FindResolvedOriginals:
     {{
         echo "##### D01_FindResolvedOriginals" > {log}
         echo "### Determine Node Variables" >> {log}
-        if [[ -z "$SLURM_CPUS_PER_TASK" ]]
+        if [[ "${{SLURM_CPUS_PER_TASK+defined}}" = defined ]]
         then
-            cpus_on_node={params.alt_cpus_on_node}
-        else
             cpus_on_node="$SLURM_CPUS_PER_TASK"
+        else
+            cpus_on_node={params.alt_cpus_on_node}
         fi
         echo "CPUs on node: $cpus_on_node" >> {log}
 
-        if [[ -z "$SLURM_MEM_PER_NODE" ]]
+        if [[ "${{SLURM_MEM_PER_NODE+defined}}" = defined ]]
         then
-            samtools_mem_flag=""
-        else
             mem_per_cpu="$(echo "$SLURM_MEM_PER_NODE/1.5/$cpus_on_node" | bc)"
             echo "Memory per cpu: $mem_per_cpu" >> {log}
             samtools_mem_flag="-m $mem_per_cpu"{params.mem_per_cpu_unit}
+        else
+            samtools_mem_flag=""
         fi
 
         echo "### Make Tmp Dir" >> {log}
@@ -51,7 +51,7 @@ rule D01_FindResolvedOriginals:
 
         echo "### Minimap Gene Model" >> {log}
         minimap2 -x splice -a -t "$cpus_on_node" {input.asm} {input.gm} | \
-            samtools sort -T "$tmp_sort_path"/originalHits "$samtools_mem_flag" -@ $(( $cpus_on_node-1 )) -o {output.bam}
+            samtools sort -T "$tmp_sort_path"/originalHits -@ $(( $cpus_on_node-1 )) -o {output.bam} "$samtools_mem_flag"
 
         echo "### Delete Samtools Sort Tmp Dir and its Contents" >> {log}
         tmp_file_size="$( du -sh $tmp_sort_path )"
