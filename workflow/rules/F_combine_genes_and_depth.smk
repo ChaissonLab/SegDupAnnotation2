@@ -20,8 +20,6 @@ rule F01_GetGeneCoverage: # naive depths
         genes="results/E07_resolved_copies.bed" # presorted
     output:
         bed="results/F01_resolved_copies_cn.bed"
-    params:
-        cluster_exec=config["cluster_exec"]
     resources:
         mem_mb=cluster_mem_mb_large,
         cpus_per_task=cluster_cpus_per_task_medium,
@@ -74,8 +72,6 @@ rule F03_GetGeneHmmCoverage: # hmm vcf depths
     output:
         hmm_noZero=temp("results/F03_copy_number_filtered.bed"),
         bed="results/F03_resolved_copies_cn2.bed"
-    params:
-        cluster_exec=config["cluster_exec"]
     resources:
         mem_mb=cluster_mem_mb_large,
         cpus_per_task=cluster_cpus_per_task_medium,

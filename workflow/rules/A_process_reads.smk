@@ -20,7 +20,6 @@ rule A02_indexAsm:
         fai="results/A01_assembly.fasta.fai",
         lnk="results/A02_assembly.fai"
     params:
-        cluster_exec=config["cluster_exec"],
         workflowDir=workflow.basedir
     resources:
         mem_mb=cluster_mem_mb_medium,
@@ -44,8 +43,6 @@ rule A03_alignReads:
     output:
         aligned=temp("results/A03_aligned/A03_{base}.bam")
     priority: 10
-    params:
-        cluster_exec=config["cluster_exec"]
     resources:
         tmpdir=tmpDir,
         mem_mb=cluster_mem_mb_xlarge,
@@ -80,8 +77,6 @@ rule A04_mergeReads:
         aln=expand("results/A03_aligned/A03_{base}.bam", base=bamFiles.keys())
     output:
         mrg=protected("results/A04_assembly.bam")
-    params:
-        cluster_exec=config["cluster_exec"]
     resources:
         mem_mb=cluster_mem_mb_small,
         cpus_per_task=cluster_cpus_per_task_small,
@@ -107,7 +102,6 @@ rule A05_indexBam:
     log: "logs/A05_indexBam.log"
     benchmark: "benchmark/A05_indexBam.tsv"
     params:
-        cluster_exec=config["cluster_exec"],
         workflowDir=workflow.basedir
     resources:
         mem_mb=cluster_mem_mb_small,

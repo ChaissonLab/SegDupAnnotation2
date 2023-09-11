@@ -24,8 +24,6 @@ rule E01_GetResolvedCopiesPaf:
         fa="results/D07_resolved_originals.fasta"
     output:
         paf="results/E01_resolved_copies.paf"
-    params:
-        cluster_exec=config["cluster_exec"]
     resources:
         mem_mb=cluster_mem_mb_xlarge,
         cpus_per_task=cluster_cpus_per_task_large,
@@ -49,7 +47,6 @@ rule E02_GetResolvedCopyIdentities:
         pafc="results/E02_mapped_resolved_originals.pafxc",
         pafx="results/E02_mapped_resolved_originals.pafx"
     params:
-        cluster_exec=config["cluster_exec"],
         workflowDir=workflow.basedir
     resources:
         mem_mb=cluster_mem_mb_medium,

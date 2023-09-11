@@ -15,8 +15,6 @@ rule D01_FindResolvedOriginals:
     output:
         bam="results/D01_resolved_originals_prefilt.bam",
         csi="results/D01_resolved_originals_prefilt.bam.csi"
-    params:
-        cluster_exec=config["cluster_exec"]
     resources:
         mem_mb=cluster_mem_mb_large,
         cpus_per_task=cluster_cpus_per_task_medium,
@@ -56,7 +54,6 @@ rule D02_FilterResolvedOriginals_FiltPercentAligned:
         filt="results/D02_resolved_originals_filtPercentAligned.bam",
         idx="results/D02_resolved_originals_filtPercentAligned.bam.csi"
     params:
-        cluster_exec=config["cluster_exec"],
         workflowDir=workflow.basedir
     resources:
         mem_mb=cluster_mem_mb_baby,
@@ -149,8 +146,6 @@ rule D06_GetResolvedOriginalsFasta_unnamed:
     output:
         rgn=temp("results/D06_resolved_originals_filtMinLength.rgn"),
         fa="results/D06_resolved_originals_unnamed.fasta"
-    params:
-        cluster_exec=config["cluster_exec"]
     resources:
         mem_mb=cluster_mem_mb_baby,
         cpus_per_task=cluster_cpus_per_task_baby,

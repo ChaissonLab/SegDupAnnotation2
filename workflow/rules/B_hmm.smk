@@ -10,8 +10,6 @@ rule B01_RunHmm:
        covz="results/B01_hmm/B01_cov_bins.bed.gz",
        tbi="results/B01_hmm/B01_cov_bins.bed.gz.tbi", # TODO is this useful?
        snvs="results/B01_hmm/B01_snvs.tsv"
-    params:
-        cluster_exec=config["cluster_exec"]
     resources:
         mem_mb=cluster_mem_mb_large,
         cpus_per_task=cluster_cpus_per_task_medium,
