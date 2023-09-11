@@ -6,8 +6,9 @@
 
 A snakemake workflow for counting gene duplications given PacBio reads, a genome assembly, and a gene model.  
 Successor to [SegDupAnnotation](https://github.com/ChaissonLab/SegDupAnnotation).
-  
-Warning: This workflow is under active development and should not yet be assumed to be a final or portable tool.
+
+[!WARNING]  
+This workflow is under active development and should not yet be assumed to be a final or portable tool.
 
 ## Usage
 Usage guide is listed in order of ease of use and portability.  
