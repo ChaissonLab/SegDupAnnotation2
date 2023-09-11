@@ -76,17 +76,3 @@ onsuccess:
     print("Workflow finished without error.")
 onerror:
     print("An error occurred. Check the .snakemake/log/ directory, the logs/ directory, and any cluster logs for details.")
-
-
-
-## Test runs: TODO DeleteMe
-# cd /project/mchaisso_100/cmb-16/krabbani/git/SegDupAnnotation2
-# snakemake -p -c 2 -j 4 --cluster "{params.grid_opts}" --use-conda
-# snakemake -c 1 -j 1 --cluster "{params.grid_opts}" -k
-# snakemake -c 3 -j 250 --cluster "{params.grid_opts}" -k
-# snakemake -c 24 -j 250 --cluster "{params.grid_opts}" -k
-# rm -i results/* logs/*
-
-
-
-
