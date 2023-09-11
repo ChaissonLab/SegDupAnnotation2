@@ -25,6 +25,32 @@ tmpDir=config["temp"]
 bamFiles={f.split("/")[-1]: f for f in config["reads_bam"]}
 catchFilt=config["flag_filtered"] # TODO Unused param
 
+# Rule Resource Variables
+
+if config["override_mem"] == -1:
+    cluster_mem_mb_baby   = config["cluster_mem_mb_baby"]
+    cluster_mem_mb_small  = config["cluster_mem_mb_small"]
+    cluster_mem_mb_medium = config["cluster_mem_mb_medium"]
+    cluster_mem_mb_large  = config["cluster_mem_mb_large"]
+    cluster_mem_mb_xlarge = config["cluster_mem_mb_xlarge"]
+else:
+    cluster_mem_mb_baby   = config["override_mem"]
+    cluster_mem_mb_small  = config["override_mem"]
+    cluster_mem_mb_medium = config["override_mem"]
+    cluster_mem_mb_large  = config["override_mem"]
+    cluster_mem_mb_xlarge = config["override_mem"]
+
+if config["override_num_cores"] == -1:
+    cluster_cpus_per_task_baby   = config["cluster_cpus_per_task_baby"]
+    cluster_cpus_per_task_small  = config["cluster_cpus_per_task_small"]
+    cluster_cpus_per_task_medium = config["cluster_cpus_per_task_medium"]
+    cluster_cpus_per_task_large  = config["cluster_cpus_per_task_large"]
+else:
+    cluster_cpus_per_task_baby   = config["override_num_cores"]
+    cluster_cpus_per_task_small  = config["override_num_cores"]
+    cluster_cpus_per_task_medium = config["override_num_cores"]
+    cluster_cpus_per_task_large  = config["override_num_cores"]
+
 ### Load Rules
 include: "rules/A_process_reads.smk"
 include: "rules/B_hmm.smk"

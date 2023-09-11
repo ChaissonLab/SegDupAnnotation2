@@ -11,25 +11,19 @@ rule B01_RunHmm:
        tbi="results/B01_hmm/B01_cov_bins.bed.gz.tbi", # TODO is this useful?
        snvs="results/B01_hmm/B01_snvs.tsv"
     params:
-        grid_opts=config["grid_large"],
-        alt_cpus_on_node=4
+        cluster_exec=config["cluster_exec"]
+    resources:
+        mem_mb=cluster_mem_mb_large,
+        cpus_per_task=cluster_cpus_per_task_medium,
+        runtime=config["cluster_runtime_long"]
     conda: "../envs/sda2.hmcnc.yml"
     log: "logs/B01_RunHmm.log"
     benchmark: "benchmark/B01_RunHmm.tsv"
     shell:"""
     {{
         echo "##### B01_RunHmm" > {log}
-        echo "### Determine Node Variables" >> {log}
-        if [[ "${{SLURM_CPUS_PER_TASK+defined}}" = defined ]]
-        then
-            cpus_on_node="$SLURM_CPUS_PER_TASK"
-        else
-            cpus_on_node={params.alt_cpus_on_node}
-        fi
-        echo "CPUs on node: $cpus_on_node" >> {log}
-
         echo "### Run HMM" >> {log}
-        hmmcnc {input.asm} -a {input.bam} -t $cpus_on_node -B {output.cov} -S {output.snvs} -o {output.vcf}
+        hmmcnc {input.asm} -a {input.bam} -t {resources.cpus_per_task} -B {output.cov} -S {output.snvs} -o {output.vcf}
 
         echo "### Sort and Index Output" >> {log}
         cat {output.cov} | \

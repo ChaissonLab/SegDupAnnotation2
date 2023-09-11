@@ -21,7 +21,11 @@ rule F01_GetGeneCoverage: # naive depths
     output:
         bed="results/F01_resolved_copies_cn.bed"
     params:
-        grid_opts=config["grid_large"]
+        cluster_exec=config["cluster_exec"]
+    resources:
+        mem_mb=cluster_mem_mb_large,
+        cpus_per_task=cluster_cpus_per_task_medium,
+        runtime=config["cluster_runtime_long"]
     conda: "../envs/sda2.main.yml"
     log: "logs/F01_GetGeneCoverage.log"
     benchmark: "benchmark/F01_GetGeneCoverage.tsv"
@@ -71,7 +75,11 @@ rule F03_GetGeneHmmCoverage: # hmm vcf depths
         hmm_noZero=temp("results/F03_copy_number_filtered.bed"),
         bed="results/F03_resolved_copies_cn2.bed"
     params:
-        grid_opts=config["grid_large"]
+        cluster_exec=config["cluster_exec"]
+    resources:
+        mem_mb=cluster_mem_mb_large,
+        cpus_per_task=cluster_cpus_per_task_medium,
+        runtime=config["cluster_runtime_long"]
     conda: "../envs/sda2.main.yml"
     log: "logs/F03_GetGeneHmmCoverage.log"
     benchmark: "benchmark/F03_GetGeneHmmCoverage.tsv"

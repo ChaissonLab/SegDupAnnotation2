@@ -108,36 +108,87 @@
             "examples": [ true, false],
             "default": false
         },
-        "grid_large": {
-            "description": "Generic SLURM paramaters for running certain rules that are computationally intense.",
-            "type": "string",
-            "examples": [ "sbatch -c 16 --mem=48G --time=24:00:00 --partition=qcb --account=mchaisso_100 --output=slurm-logs/slurm-%j.out" ]
-        },
-        "grid_medium2": {
-            "description": "Generic SLURM paramaters for running certain rules that are computationally mild.",
-            "type": "string",
-            "examples": [ "sbatch -c 1 --mem=32G --time=4:00:00 --partition=qcb --account=mchaisso_100 --output=slurm-logs/slurm-%j.out" ]
-        },
-        "grid_medium": {
-            "description": "Generic SLURM paramaters for running certain rules that are computationally mild.",
-            "type": "string",
-            "examples": [ "sbatch -c 4 --mem=6G --time=24:00:00 --partition=qcb --account=mchaisso_100 --output=slurm-logs/slurm-%j.out" ]
-        },
-        "grid_small": {
-            "description": "Generic SLURM paramaters for running certain rules that are not computationally intense.",
-            "type": "string",
-            "examples": [ "sbatch -c 1 --mem=1G --time=4:00:00 --partition=qcb --account=mchaisso_100 --output=slurm-logs/slurm-%j.out" ]
-        },
-        "override_num_cores": {
-            "description": "Override the default number of available cores. NOT YET IMPLEMENTED! TODO",
+        "cluster_mem_mb_baby": {
+            "description": "The memory in MB a cluster node or cpu must provide for a computationally simple job. In practice this parameter is combined with a cluster_cpus_per_task_<size> parameter by some rules to create a SLURM or other cluster job.",
             "type": "integer",
-            "examples": [ 5 ],
-            "default": -1
+            "examples": [ 1000, 6000, 32000, 48000, 130000 ],
+            "default": 1000
+        },
+        "cluster_mem_mb_small": {
+            "description": "The memory in MB a cluster node or cpu must provide for a computationally simple job. In practice this parameter is combined with a cluster_cpus_per_task_<size> parameter by some rules to create a SLURM or other cluster job.",
+            "type": "integer",
+            "examples": [ 1000, 6000, 32000, 48000, 130000 ],
+            "default": 6000
+        },
+        "cluster_mem_mb_medium": {
+            "description": "The memory in MB a cluster node or cpu must provide for a computationally mild job. In practice this parameter is combined with a cluster_cpus_per_task_<size> parameter by some rules to create a SLURM or other cluster job.",
+            "type": "integer",
+            "examples": [ 1000, 6000, 32000, 48000, 130000 ],
+            "default": 6000
+        },
+        "cluster_mem_mb_large": {
+            "description": "The memory in MB a cluster node or cpu must provide for a computationally intense job. In practice this parameter is combined with a cluster_cpus_per_task_<size> parameter by some rules to create a SLURM or other cluster job.",
+            "type": "integer",
+            "examples": [ 1000, 6000, 32000, 48000, 130000 ],
+            "default": 6000
+        },
+        "cluster_mem_mb_xlarge": {
+            "description": "The memory in MB a cluster node or cpu must provide for a computationally intense job. In practice this parameter is combined with a cluster_cpus_per_task_<size> parameter by some rules to create a SLURM or other cluster job.",
+            "type": "integer",
+            "examples": [ 1000, 6000, 32000, 48000, 130000 ],
+            "default": 6000
+        },
+        "cluster_cpus_per_task_baby": {
+            "description": "The number of cpus per task for a computationally simple rule. In practice this parameter is combined with a cluster_mem_mb_<size> parameter by some rules to create a SLURM or other cluster job.",
+            "type": "integer",
+            "examples": [ 1, 4, 16, 64 ],
+            "default": 1
+        },
+        "cluster_cpus_per_task_small": {
+            "description": "The number of cpus per task for a computationally mild rule. In practice this parameter is combined with a cluster_mem_mb_<size> parameter by some rules to create a SLURM or other cluster job.",
+            "type": "integer",
+            "examples": [ 1, 4, 16, 64 ],
+            "default": 3
+        },
+        "cluster_cpus_per_task_medium": {
+            "description": "The number of cpus per task for a computationally intense rule. In practice this parameter is combined with a cluster_mem_mb_<size> parameter by some rules to create a SLURM or other cluster job.",
+            "type": "integer",
+            "examples": [ 1, 4, 16, 64 ],
+            "default": 3
+        },
+        "cluster_cpus_per_task_large": {
+            "description": "The number of cpus per task for a computationally intense rule. In practice this parameter is combined with a cluster_mem_mb_<size> parameter by some rules to create a SLURM or other cluster job.",
+            "type": "integer",
+            "examples": [ 1, 4, 16, 64 ],
+            "default": 3
+        },
+        "cluster_runtime_short": {
+            "description": "The walltime in minutes allocated for rules expected to take a relatively short amount of time (like 4 hrs). This parameter is only used if called in the cluster_exec parameter or by snakemake's --slurm command line paramter.",
+            "type": "integer",
+            "examples": [ 60, 240, 1440 ],
+            "default": 240
+        },
+        "cluster_runtime_long": {
+            "description": "The walltime in minutes allocated for rules expected to take a relatively long amount of time (like 24 hrs). This parameter is only used if called in the cluster_exec parameter or by snakemake's --slurm command line paramter.",
+            "type": "integer",
+            "examples": [ 60, 240, 1440 ],
+            "default": 240
+        },
+        "cluster_exec": {
+            "description": "Generic SLURM paramaters for running rules that are resource light or resource intense. Intended to be paired with snakemake's --cluster command line parameter.",
+            "type": "string",
+            "examples": [ "sbatch -c {resources.cpus_per_task} --mem={resources.mem_mb}MB --time={resources.runtime} --partition=qcb --account=mchaisso_100 --output=slurm-logs/slurm-%j.out" ]
         },
         "override_mem": {
-            "description": "Override the memory available in Mb. NOT YET IMPLEMENTED! TODO",
+            "description": "Override the memory available in MB otherwise defined by the cluster_mem_mb_<size> parameters in MB. If set to -1, the cluster_mem_mb_<X> paramters will not be overwritten.",
             "type": "integer",
-            "examples": [ 4000 ],
+            "examples": [ -1, 4000 ],
+            "default": -1
+        },
+        "override_num_cores": {
+            "description": "Override the number of allocated cores otherwise defined by the cluster_cpus_per_task_<size> parameters. If set to -1, the cluster_cpus_per_task_<size> paramters will not be overwritten.",
+            "type": "integer",
+            "examples": [ -1, 5 ],
             "default": -1
         }
     },

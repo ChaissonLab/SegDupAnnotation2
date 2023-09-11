@@ -14,15 +14,14 @@ rule D01_FindResolvedOriginals:
         asm="results/A01_assembly.fasta"
     output:
         bam="results/D01_resolved_originals_prefilt.bam",
-        presort=temp("results/D01_resolved_originals_prefilt_presort.bam"),
         csi="results/D01_resolved_originals_prefilt.bam.csi"
     params:
-        grid_opts=config["grid_large"], # TODO Switch all grid_large to grid_minimap?
-        mem_per_cpu_unit="M",
-        alt_cpus_on_node=3 # Minimap2 default
+        cluster_exec=config["cluster_exec"]
     resources:
+        mem_mb=cluster_mem_mb_large,
+        cpus_per_task=cluster_cpus_per_task_medium,
+        runtime=config["cluster_runtime_long"],
         tmpdir=tmpDir
-        #tmpdir="/dev/shm/" # TODO UPDATE
     conda: "../envs/sda2.main.yml"
     log: "logs/D01_FindResolvedOriginals.log"
     benchmark: "benchmark/D01_FindResolvedOriginals.tsv"
@@ -30,29 +29,15 @@ rule D01_FindResolvedOriginals:
     {{
         echo "##### D01_FindResolvedOriginals" > {log}
         echo "### Determine Node Variables" >> {log}
-        if [[ "${{SLURM_CPUS_PER_TASK+defined}}" = defined ]]
-        then
-            cpus_on_node="$SLURM_CPUS_PER_TASK"
-        else
-            cpus_on_node={params.alt_cpus_on_node}
-        fi
-        echo "CPUs on node: $cpus_on_node" >> {log}
-
-        if [[ "${{SLURM_MEM_PER_NODE+defined}}" = defined ]]
-        then
-            mem_per_cpu="$(echo "$SLURM_MEM_PER_NODE/1.5/$cpus_on_node" | bc)"
-            echo "Memory per cpu: $mem_per_cpu" >> {log}
-            samtools_mem_flag="-m $mem_per_cpu"{params.mem_per_cpu_unit}
-        else
-            samtools_mem_flag=" "
-        fi
+        mem_per_cpu="$(echo "{resources.mem_mb}/1.5/{resources.cpus_per_task}" | bc)"
+        echo "Memory per cpu: $mem_per_cpu" >> {log}
 
         echo "### Make Tmp Dir" >> {log}
         tmp_sort_path=`mktemp -d -p {resources.tmpdir} geneModel.sort.XXXX.tmp`
 
         echo "### Minimap Gene Model" >> {log}
-        minimap2 -x splice -a -t "$cpus_on_node" {input.asm} {input.gm} > {output.presort}
-        cat {output.presort} | samtools sort -T "$tmp_sort_path"/originalHits -@ $(( $cpus_on_node-1 )) -o {output.bam} "$samtools_mem_flag" # TODO need to delete samtools_mem_flag var to get this to work via singularity on endeavour2...
+        minimap2 -x splice -a -t {resources.cpus_per_task} {input.asm} {input.gm} | \
+            samtools sort -T "$tmp_sort_path"/originalHits -m "$mem_per_cpu"M -@ $(( {resources.cpus_per_task}-1 )) -o {output.bam}
 
         echo "### Delete Samtools Sort Tmp Dir and its Contents" >> {log}
         tmp_file_size="$( du -sh $tmp_sort_path )"
@@ -71,8 +56,12 @@ rule D02_FilterResolvedOriginals_FiltPercentAligned:
         filt="results/D02_resolved_originals_filtPercentAligned.bam",
         idx="results/D02_resolved_originals_filtPercentAligned.bam.csi"
     params:
-        grid_opts=config["grid_small"],
+        cluster_exec=config["cluster_exec"],
         workflowDir=workflow.basedir
+    resources:
+        mem_mb=cluster_mem_mb_baby,
+        cpus_per_task=cluster_cpus_per_task_baby,
+        runtime=config["cluster_runtime_short"]
     conda: "../envs/sda2.python.yml"
     log: "logs/D02_FilterResolvedOriginals_FiltPercentAligned.log"
     shell:"""
@@ -161,7 +150,11 @@ rule D06_GetResolvedOriginalsFasta_unnamed:
         rgn=temp("results/D06_resolved_originals_filtMinLength.rgn"),
         fa="results/D06_resolved_originals_unnamed.fasta"
     params:
-        grid_opts=config["grid_small"]
+        cluster_exec=config["cluster_exec"]
+    resources:
+        mem_mb=cluster_mem_mb_baby,
+        cpus_per_task=cluster_cpus_per_task_baby,
+        runtime=config["cluster_runtime_short"]
     conda: "../envs/sda2.main.yml"
     log: "logs/D06_GetResolvedOriginalsFasta_unnamed.log"
     benchmark: "benchmark/D06_GetResolvedOriginalsFasta_unnamed.tsv"

@@ -25,25 +25,19 @@ rule E01_GetResolvedCopiesPaf:
     output:
         paf="results/E01_resolved_copies.paf"
     params:
-        grid_opts=config["grid_xlarge"],
-        alt_cpus_on_node=3 # Minimap2 default
+        cluster_exec=config["cluster_exec"]
+    resources:
+        mem_mb=cluster_mem_mb_xlarge,
+        cpus_per_task=cluster_cpus_per_task_large,
+        runtime=config["cluster_runtime_long"]
     conda: "../envs/sda2.main.yml"
     log: "logs/E01_GetResolvedCopiesPaf.log"
     benchmark: "benchmark/E01_GetResolvedCopiesPaf.tsv"
     shell:"""
     {{
         echo "##### E01_GetResolvedCopiesPaf" > {log}
-        echo "### Determine Node Variables" >> {log}
-        if [[ "${{SLURM_CPUS_PER_TASK+defined}}" = defined ]]
-        then
-            cpus_on_node="$SLURM_CPUS_PER_TASK"
-        else
-            cpus_on_node={params.alt_cpus_on_node}
-        fi
-        echo "CPUs on node: $cpus_on_node" >> {log}
-
         echo "### Minimap originals to asm" >> {log}
-        minimap2 -x asm20 -p 0.2 -N 100 -m 10 -E2,0 -s 10 -t "$cpus_on_node" {input.asm} {input.fa} 1> {output.paf}
+        minimap2 -x asm20 -p 0.2 -N 100 -m 10 -E2,0 -s 10 -t {resources.cpus_per_task} {input.asm} {input.fa} 1> {output.paf}
     }} 2>> {log}
     """
 
@@ -55,11 +49,12 @@ rule E02_GetResolvedCopyIdentities:
         pafc="results/E02_mapped_resolved_originals.pafxc",
         pafx="results/E02_mapped_resolved_originals.pafx"
     params:
-        #grid_opts=config["grid_xlarge"], # ideally probably 32 cores, 16 gb memory, 2 hrs
-        grid_opts="sbatch -c 64 --mem=16G --time=1:00:00 --partition=qcb --account=mchaisso_100 --output=slurm-logs/slurm-%j.out", # TODO
-        alt_cpus_on_node=3,
+        cluster_exec=config["cluster_exec"],
         workflowDir=workflow.basedir
     resources:
+        mem_mb=cluster_mem_mb_medium,
+        cpus_per_task=cluster_cpus_per_task_large,
+        runtime=config["cluster_runtime_short"],
         tmpdir=tmpDir
     retries: 2
     conda: "../envs/sda2.python.yml"
@@ -68,17 +63,8 @@ rule E02_GetResolvedCopyIdentities:
     shell:"""
     {{
         echo "##### E02_GetResolvedCopyIdentities" > {log}
-        echo "### Determine Node Variables" >> {log}
-        if [[ "${{SLURM_CPUS_PER_TASK+defined}}" = defined ]]
-        then
-            cpus_on_node="$SLURM_CPUS_PER_TASK"
-        else
-            cpus_on_node={params.alt_cpus_on_node}
-        fi
-        echo "CPUs on node: $cpus_on_node" >> {log}
-
         echo "### Align and calculate hit identities" >> {log}
-        cat {input.paf} | xargs -P $cpus_on_node -I % bash -c ' \
+        cat {input.paf} | xargs -P {resources.cpus_per_task} -I % bash -c ' \
             tmp_dir=`mktemp -d -p {resources.tmpdir} tmp.getIdent.$$.XXXXXX`; \
             echo "$@" | tr "\\t" " " > "$tmp_dir"/line.paf; \
             {params.workflowDir}/scripts/E02_CalcPafIdentity.py {input.asm} "$tmp_dir" "$tmp_dir"/line.paf 1>> {output.pafc}; \
