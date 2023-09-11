@@ -13,7 +13,7 @@ Warning: This workflow is under active development and should not yet be assumed
 Usage guide is listed in order of ease of use and portability.  
 Internet access is required for snakemake to download the docker image and conda environments.
 
-# Singularity
+### Singularity
 - Install Snakemake and Singularity.
 - Clone github repository.
 - Create configuration file per config/README.md specifications.
@@ -22,14 +22,14 @@ Internet access is required for snakemake to download the docker image and conda
     - `snakemake -c 1 -j 250 --use-singularity --use-conda --singularity-args " --bind \<path to an input file\>\[,\path to another input file\] "`
     - Don't forget to bind paths of input files per the given config file.
 
-# Bare Metal with Conda
+### Bare Metal with Conda
 - Install Snakemake and Mamba.
 - Clone github repository.
 - Create configuration file per config/README.md specifications.
 - From repository root, run (which will automatically download and use pre-defined conda environments):
     - `snakemake -c 1 -j 250 --use-conda`
 
-# Bare Metal with Conda and SLURM
+### Bare Metal with Conda and SLURM
 - Install Snakemake and Mamba.
 - Clone github repository.
 - Create configuration file per config/README.md specifications.
@@ -37,14 +37,14 @@ Internet access is required for snakemake to download the docker image and conda
     - `snakemake -c 1 -j 250 --use-conda --slurm --default-resources slurm_account=\<your SLURM account\> slurm_partition=\<your SLURM partition\>"`, or
     - `snakemake -c 1 -j 250 --use-conda --cluster "sbatch -c {resources.cpus_per_task} --mem={resources.mem_mb}MB" --time={resources.runtime} --account=\<your SLURM account\> --partition=\<your SLURM partition\>"`
 
-# Bare Metal
+### Bare Metal
 - Ensure all dependencies are installed on the system. For a list reference 'workflow/envs'.
 - Clone github repository.
 - Create configuration file per config/README.md specifications.
 - From repository root, run:
     - `snakemake -c 1 -j 250`
 
-# My Bare Metal with SLURM commands
+### My Bare Metal with SLURM commands
 - conda activate sda
 - Then I run:
     - `snakemake -c 1 -j 250 -k --slurm --default-resources slurm_account=mchaisso_100 slurm_partition=qcb --output=slurm-logs/slurm-%j.out"`, or
