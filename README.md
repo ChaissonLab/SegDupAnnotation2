@@ -34,8 +34,8 @@ Internet access is required for snakemake to download the docker image and conda
 - Clone github repository.
 - Create configuration file per config/README.md specifications.
 - From repository root, run (which will automatically download and use pre-defined conda environments):
-    - `snakemake -c 1 -j 250 --use-conda --slurm --default-resources slurm_account=\<your SLURM account\> slurm_partition=\<your SLURM partition\>"`, or
-    - `snakemake -c 1 -j 250 --use-conda --cluster "sbatch -c {resources.cpus_per_task} --mem={resources.mem_mb}MB" --time={resources.runtime} --account=\<your SLURM account\> --partition=\<your SLURM partition\>"`
+    - `snakemake -c 1 -j 250 --use-conda --slurm --default-resources slurm_account=\<your SLURM account\> slurm_partition=\<your SLURM partition\>`, or
+    - `snakemake -c 1 -j 250 --use-conda --cluster "sbatch -c {resources.cpus_per_task} --mem={resources.mem_mb}MB --time={resources.runtime} --account=\<your SLURM account\> --partition=\<your SLURM partition\>"`
 
 ### Bare Metal
 - Ensure all dependencies are installed on the system. For a list reference 'workflow/envs'.
@@ -47,8 +47,8 @@ Internet access is required for snakemake to download the docker image and conda
 ### My Bare Metal with SLURM commands
 - `conda activate sda`
 - Then I run:
-    - `snakemake -c 1 -j 250 -k --slurm --default-resources slurm_account=mchaisso_100 slurm_partition=qcb --output=slurm-logs/slurm-%j.out"`, or
-    - `snakemake -c 1 -j 250 -k --use-conda --cluster "sbatch -c {resources.cpus_per_task} --mem={resources.mem_mb}MB" --time={resources.runtime} --account=mchaisso_100 --partition=qcb --output=slurm-logs/slurm-%j.out"`
+    - `snakemake -c 1 -j 250 -k --slurm --default-resources slurm_account=mchaisso_100 slurm_partition=qcb`, or
+    - `snakemake -c 1 -j 250 -k --use-conda --cluster "sbatch -c {resources.cpus_per_task} --mem={resources.mem_mb}MB --time={resources.runtime} --account=mchaisso_100 --partition=qcb --output=slurm-logs/slurm-%j.out"`
 
 ## Salient Output File Specifications
 
