@@ -45,7 +45,7 @@ Internet access is required for snakemake to download the docker image and conda
     - `snakemake -c 1 -j 250`
 
 ### My Bare Metal with SLURM commands
-- conda activate sda
+- `conda activate sda`
 - Then I run:
     - `snakemake -c 1 -j 250 -k --slurm --default-resources slurm_account=mchaisso_100 slurm_partition=qcb --output=slurm-logs/slurm-%j.out"`, or
     - `snakemake -c 1 -j 250 -k --use-conda --cluster "sbatch -c {resources.cpus_per_task} --mem={resources.mem_mb}MB" --time={resources.runtime} --account=mchaisso_100 --partition=qcb --output=slurm-logs/slurm-%j.out"`
