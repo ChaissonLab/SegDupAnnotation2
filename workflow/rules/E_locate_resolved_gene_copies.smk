@@ -11,11 +11,12 @@
 # - E01 map resolved originals to asm (out: paf)
 # - E02 Needleman Wunch alignment of copy hits to original (calc matches/mismatches/etc)
 # - E02 calculate resolved copy identity/accuracy
-# - E03 filter by identity/accuracy?
-# - E04 network approach for overlapping similar sized genes (giving Original priority)
-# - E05 paf to bed
-# - E06 Annotate Original and sort by gene then by hit loc
-# - E07 Filter by Original's hit length margin
+# - E03 filter by identity/accuracy
+# - E04 identify exon lengths
+# - E05 network approach for overlapping similar sized genes (giving Original priority)
+# - E06 paf to bed
+# - E07 Annotate Original and sort by gene then by hit loc
+# - E08 Filter by Original's hit length margin
 
 
 rule E01_GetResolvedCopiesPaf:
@@ -94,21 +95,92 @@ rule E03_FilterLowIdentityPaf:
     }} 2>> {log}
     """
 
-rule E04_FilterOverlappingGenes:
+# Locate Exons in gene copies and filter out gene copies that contain <50% of their gene model
+rule E04_LocateExons:
     input:
-        pafx="results/E03_mapped_resolved_originals_filtered.pafx"
+        pafx="results/E03_mapped_resolved_originals_filtered.pafx",
+        gm="results/C03_gene_model_filt.fasta",
+        asm="results/A01_assembly.fasta"
+    output:
+        gmidx="results/C03_gene_model_filt.fasta.fai",
+        pafxe="results/E04_mapped_resolved_originals_wExons.pafxe"
+    params:
+        workflowDir=workflow.basedir
+    resources:
+        mem_mb=cluster_mem_mb_medium,
+        cpus_per_task=cluster_cpus_per_task_large,
+        runtime=config["cluster_runtime_short"],
+        tmpdir=tmpDir
+    retries: 2
+    conda: "../envs/sda2.main.yml"
+    log: "logs/E04_LocateExons.log"
+    benchmark: "benchmark/E04_LocateExons.tsv"
+    shell:"""
+    {{
+        echo "##### E04_LocateExons" > {log}
+        echo "### Determine Node Variables" >> {log}
+        mem_per_cpu="$(echo "{resources.mem_mb}/1.5/{resources.cpus_per_task}" | bc)"
+        echo "Memory per cpu: $mem_per_cpu" >> {log}
+
+        echo "### Index Gene Model Fasta" >> {log}
+        samtools faidx {input.gm}
+
+        > {resources.tmpdir}/tmp.multiLineTest.err # TODO Delte me
+
+        echo "### Locate Exons" >> {log}
+        echo "## Create Locate Function" >> {log}
+        locExons () {{ # input = single paf line
+            pafLine=`echo "$*" | tr "\\t" " "`
+
+            gene=`echo "$pafLine" | tr "/" "\\t" | awk '(NR==1) {{print $1}}'`
+            geneClean=`echo "$pafLine" | tr "/" "\\t" | tr "|" "-" | awk '(NR==1) {{print $1}}'`
+            geneLoc=`echo "$pafLine" | tr " " "\\t" | awk '(NR==1) {{print $6":"$8"-"$9}}'`
+
+            tmp_dir=`mktemp -d -p {resources.tmpdir} tmp.getIdent.$geneClean.$$.XXXXXX`
+
+            samtools faidx {input.gm} "$gene" > "$tmp_dir"/gene_model.fasta
+            samtools faidx {input.asm} "$geneLoc" > "$tmp_dir"/gene_copy.fasta
+            
+            minimap2 -x splice -a -t {resources.cpus_per_task} "$tmp_dir"/gene_copy.fasta "$tmp_dir"/gene_model.fasta 1> "$tmp_dir"/gene_copy.sam
+
+            samtools view -b -F 2316 "$tmp_dir"/gene_copy.sam > "$tmp_dir"/gene_copy.bam # -F 4,8,256,2048
+            samtools index "$tmp_dir"/gene_copy.bam
+            {params.workflowDir}/scripts/D02_FilterMappedLength.py "$tmp_dir"/gene_copy.bam | \
+                samtools view -b -o "$tmp_dir"/gene_copy_filt.bam # passes filter if mapped gene copy contains >= 50% gene model
+
+            if [ -f "$tmp_dir"/gene_copy_filt.bam ]; then
+                bedtools bamtobed -bed12 -i "$tmp_dir"/gene_copy_filt.bam > "$tmp_dir"/gene_copy.bed
+                head -1 "$tmp_dir"/gene_copy.bed | awk -v funcInputPaf="$pafLine" 'BEGIN {{OFS="\\t"}} {{print funcInputPaf,$11,$12}}' >> {output.pafxe}
+                
+                cat "$tmp_dir"/gene_copy.bed | tail -n+2 >> {resources.tmpdir}/tmp.multiLineTest.err # TODO Delte me
+            fi
+
+            rm -rf "$tmp_dir"
+        }}
+        export -f locExons
+
+        echo "## Run Locate Function" >> {log}
+        cat {input.pafx} | tr "\\t" " " | \
+            xargs -P {resources.cpus_per_task} -I % bash -c ' \
+                locExons "$@" ' _ %
+    }} 2>> {log}
+    """
+
+rule E05_FilterOverlappingGenes:
+    input:
+        pafxe="results/E04_mapped_resolved_originals_wExons.pafxe"
     output: # TODO should probably sort input first
-        filt="results/E04_mapped_resolved_originals_filtered.pafx"
+        filt="results/E05_mapped_resolved_originals_filtered.pafx"
     params:
         allowOverlappingGenes=config["flag_allow_overlapping_genes"],
         workflowDir=workflow.basedir
     conda: "../envs/sda2.python.yml"
     localrule: True # TODO Double check
-    log: "logs/E04_FilterOverlappingGenes.log"
-    benchmark: "benchmark/E04_FilterOverlappingGenes.tsv"
+    log: "logs/E05_FilterOverlappingGenes.log"
+    benchmark: "benchmark/E05_FilterOverlappingGenes.tsv"
     shell:"""
     {{
-        echo "##### E04_FilterOverlappingGenes" > {log}
+        echo "##### E05_FilterOverlappingGenes" > {log}
         if [ {params.allowOverlappingGenes} = "True" ]
         then
             echo "### Do not remove overlapping or intronic genes: create symlink instead." >> {log}
@@ -117,24 +189,24 @@ rule E04_FilterOverlappingGenes:
             echo "### Remove intronic and otherwise overlapping genes" >> {log}
             cat {input.pafx} | \
                 awk 'BEGIN {{OFS="\\t"}} {{print $0,NR,"0"}}' | \
-                {params.workflowDir}/scripts/E04_NetworkFilter.py /dev/stdin | \
+                {params.workflowDir}/scripts/E05_NetworkFilter.py /dev/stdin | \
                 awk 'BEGIN {{OFS="\\t"}} ($22==1) {{print $0}}' | \
                 cut -f1-20 1> {output.filt} # TODO Pick and tune optimal networking alg
         fi
     }} 2>> {log}
     """
 
-rule E05_FinalResolvedCopiesBed:
+rule E06_FinalResolvedCopiesBed:
     input:
-        pafx="results/E04_mapped_resolved_originals_filtered.pafx"
+        pafx="results/E05_mapped_resolved_originals_filtered.pafx"
     output:
-        bed="results/E05_mapped_resolved_originals_filtered.bed"
+        bed="results/E06_mapped_resolved_originals_filtered.bed"
     localrule: True
     conda: "../envs/sda2.main.yml"
-    log: "logs/E05_FinalResolvedCopiesBed.log"
+    log: "logs/E06_FinalResolvedCopiesBed.log"
     shell:"""
     {{
-        echo "##### E05_FinalResolvedCopiesBed" > {log}
+        echo "##### E06_FinalResolvedCopiesBed" > {log}
         cat {input.pafx} | awk 'BEGIN {{OFS="\\t"}} \
         {{if ($5=="+") \
             {{strand=0}} \
@@ -145,19 +217,19 @@ rule E05_FinalResolvedCopiesBed:
     }} 2>> {log}
     """
 
-rule E06_AnnotateOriginal:
+rule E07_AnnotateOriginal:
     input:
-        bed="results/E05_mapped_resolved_originals_filtered.bed"
+        bed="results/E06_mapped_resolved_originals_filtered.bed"
     output:
-        bedAn="results/E06_mapped_resolved_originals_filtered_ogAnnotated.bed"
+        bedAn="results/E07_mapped_resolved_originals_filtered_ogAnnotated.bed"
     params:
         marginToCallOriginal=100
     localrule: True
     conda: "../envs/sda2.main.yml"
-    log: "logs/E06_AnnotateOriginal.log"
+    log: "logs/E07_AnnotateOriginal.log"
     shell:"""
     {{
-        echo "##### E06_AnnotateOriginal" > {log}
+        echo "##### E07_AnnotateOriginal" > {log}
         cat {input.bed} | \
             tr '/' '\\t' | \
             awk -v margin={params.marginToCallOriginal} ' \
@@ -178,19 +250,19 @@ rule E06_AnnotateOriginal:
     }} 2>> {log}
     """
 
-rule E07_FiltByOriginalLengthMargin:
+rule E08_FiltByOriginalLengthMargin:
     input:
-        bed="results/E06_mapped_resolved_originals_filtered_ogAnnotated.bed"
+        bed="results/E07_mapped_resolved_originals_filtered_ogAnnotated.bed"
     output:
-        filt="results/E07_resolved_copies.bed"
+        filt="results/E08_resolved_copies.bed"
     params:
         maxLengthMargin=config["max_length_margin"]
     localrule: True
     conda: "../envs/sda2.main.yml"
-    log: "logs/E07_FiltByOriginalLengthMargin.log"
+    log: "logs/E08_FiltByOriginalLengthMargin.log"
     shell:"""
     {{
-        echo "##### E07_FiltByOriginalLengthMargin" > {log}
+        echo "##### E08_FiltByOriginalLengthMargin" > {log}
         cat {input.bed} | \
             awk -v maxLengthMargin={params.maxLengthMargin} ' \
                 BEGIN \

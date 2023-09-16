@@ -7,7 +7,7 @@
 #          - autosomal > 2 copies
 #          - sex chr > 1 copy
 #          -> combine with rule MappedSamIdentityDups
-# -     Combine isoforms based on gene name (like combine all VDACs if overlapping like SelectDupsOneIsoform - in addition to E04...)
+# -     Combine isoforms based on gene name (like combine all VDACs if overlapping like SelectDupsOneIsoform - in addition to E05...)
 
 # Flow for next smk file:
 # - Get counts tables
@@ -17,7 +17,7 @@
 rule F01_GetGeneCoverage: # naive depths
     input:
         depths="results/B01_hmm/B01_cov_bins.bed.gz", # presorted
-        genes="results/E07_resolved_copies.bed" # presorted
+        genes="results/E08_resolved_copies.bed" # presorted
     output:
         bed="results/F01_resolved_copies_cn.bed"
     resources:

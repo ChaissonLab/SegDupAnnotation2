@@ -2,7 +2,8 @@
 
 # Input:
 #   Arg1: bam of resolved originals (see rule D02_FilterResolvedOriginals_FiltPercentAligned in snakefile).  
-# Purpose: Filter out input bam entries with <= 50% match (between assembly and reads).
+# Purpose: Filter out input bam entries with < 50% match (between assembly and reads).
+# Use: Used in D02 and E04 rules of SegDupAnnotation2
 
 import pysam
 import sys

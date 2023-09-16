@@ -2,7 +2,7 @@
 # - D01 map asm to model (getting resolved originals)
 # - D02 filter keeping >50% aligned resolved original hits to seq (and index?) (out=bam)
 # - D03 bamToBed (out bed)
-# - D04 filter out multi exon
+# - D04 filter out single exon
 # - D05 filter >= MIN_HIT_LENGTH
 # - D06 get fasta of resolved original hits
 # - D07 properly name resolved original hits fasta
@@ -66,8 +66,8 @@ rule D02_FilterResolvedOriginals_FiltPercentAligned:
         echo "##### D02_FilterResolvedOriginals_FiltPercentAligned" > {log}
         echo "### Minimap Gene Model" >> {log}
         
-        {params.workflowDir}/scripts/D02_FilterMappedLength.py {input.bam} | \
-            samtools view -b -o {output.filt}
+            {params.workflowDir}/scripts/D02_FilterMappedLength.py {input.bam} | \
+                samtools view -b -o {output.filt}
 
         echo "### Index Resolved Original Hits Filt Bam" >> {log}
         samtools index -c {output.filt}
