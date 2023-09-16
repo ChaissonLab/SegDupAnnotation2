@@ -130,7 +130,7 @@ rule F05_FindDups:
         sexChrs=expand("{base}",base=config["sex_chr"]),
         workflowDir=workflow.basedir
     localrule: True
-    conda: "../envs/sda2.python.yml"
+    conda: "../envs/sda2.main.yml"
     log: "logs/F05_FindDups.log"
     benchmark: "benchmark/F05_FindDups.tsv"
     shell:"""

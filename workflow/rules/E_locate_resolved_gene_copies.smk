@@ -55,7 +55,7 @@ rule E02_GetResolvedCopyIdentities:
         runtime=config["cluster_runtime_short"],
         tmpdir=tmpDir
     retries: 2
-    conda: "../envs/sda2.python.yml"
+    conda: "../envs/sda2.main.yml"
     log: "logs/E02_GetResolvedCopyIdentities.log"
     benchmark: "benchmark/E02_GetResolvedCopyIdentities.tsv"
     shell:"""
@@ -174,7 +174,7 @@ rule E05_FilterOverlappingGenes:
     params:
         allowOverlappingGenes=config["flag_allow_overlapping_genes"],
         workflowDir=workflow.basedir
-    conda: "../envs/sda2.python.yml"
+    conda: "../envs/sda2.main.yml"
     localrule: True # TODO Double check
     log: "logs/E05_FilterOverlappingGenes.log"
     benchmark: "benchmark/E05_FilterOverlappingGenes.tsv"

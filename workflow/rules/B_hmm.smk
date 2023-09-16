@@ -39,7 +39,7 @@ rule B02_GetCN:
     params:
         workflowDir=workflow.basedir
     localrule: True
-    conda: "../envs/sda2.python.yml"
+    conda: "../envs/sda2.main.yml"
     log: "logs/B02_GetCN.log"
     benchmark: "benchmark/B02_GetCN.tsv"
     shell:"""

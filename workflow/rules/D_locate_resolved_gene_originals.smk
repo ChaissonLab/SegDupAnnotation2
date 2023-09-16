@@ -59,7 +59,7 @@ rule D02_FilterResolvedOriginals_FiltPercentAligned:
         mem_mb=cluster_mem_mb_baby,
         cpus_per_task=cluster_cpus_per_task_baby,
         runtime=config["cluster_runtime_short"]
-    conda: "../envs/sda2.python.yml"
+    conda: "../envs/sda2.main.yml"
     log: "logs/D02_FilterResolvedOriginals_FiltPercentAligned.log"
     shell:"""
     {{
@@ -168,7 +168,7 @@ rule D07_GetResolvedOriginalsFasta:
     params:
         workflowDir=workflow.basedir
     localrule: True
-    conda: "../envs/sda2.python.yml"
+    conda: "../envs/sda2.main.yml"
     log: "logs/D07_GetResolvedOriginalsFasta.log"
     benchmark: "benchmark/D07_GetResolvedOriginalsFasta.tsv"
     shell:"""
