@@ -17,7 +17,7 @@ min_version("7.25.0") # Created using Snakemake v7.25.0
 configfile: "config/sd_analysis.json"
 validate(config, "schemas/config.schema.json", set_default=True)
 
-containerized: "docker://krabbani/segdupannotation2:1.0.s" # TODO update to reflect conda env changes
+containerized: "docker://krabbani/segdupannotation2:1.1.s"
 
 ### Variables & Constants
 species=config["species"]
