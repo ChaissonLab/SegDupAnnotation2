@@ -1,3 +1,5 @@
 workflow/envs/Dockerfile
 workflow/envs/hmcnc_channel
 workflow/envs/hmcnc_recipe
+dag.pdf
+dag.svg
