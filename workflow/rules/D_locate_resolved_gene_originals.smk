@@ -16,7 +16,7 @@ rule D01_FindResolvedOriginals:
         bam="results/D01_resolved_originals_prefilt.bam",
         csi="results/D01_resolved_originals_prefilt.bam.csi"
     resources:
-        mem_mb=cluster_mem_mb_large,
+        mem_mb=cluster_mem_mb_xlarge,
         cpus_per_task=cluster_cpus_per_task_medium,
         runtime=config["cluster_runtime_long"],
         tmpdir=tmpDir

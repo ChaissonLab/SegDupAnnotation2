@@ -150,9 +150,9 @@ rule E04_LocateExons:
 
             if [ -f "$tmp_dir"/gene_copy_filt.bam ]; then
                 bedtools bamtobed -bed12 -i "$tmp_dir"/gene_copy_filt.bam > "$tmp_dir"/gene_copy.bed
-                head -1 "$tmp_dir"/gene_copy.bed | awk -v funcInputPaf="$pafLine" 'BEGIN {{OFS="\\t"}} {{print funcInputPaf,$11,$12}}' >> {output.pafxe}
+                head -1 "$tmp_dir"/gene_copy.bed | awk -v funcInputPaf="$pafLine" 'BEGIN {{OFS=" "}} {{print funcInputPaf,$11,$12}}' | tr ' ' '\\t' >> {output.pafxe}
                 
-                cat "$tmp_dir"/gene_copy.bed | tail -n+2 >> {resources.tmpdir}/tmp.multiLineTest.err # TODO Delte me
+                cat "$tmp_dir"/gene_copy.bed | tail -n+2 >> {resources.tmpdir}/tmp.multiLineTest.err # TODO Delete me
             fi
 
             rm -rf "$tmp_dir"
@@ -170,12 +170,12 @@ rule E05_FilterOverlappingGenes:
     input:
         pafxe="results/E04_mapped_resolved_originals_wExons.pafxe"
     output: # TODO should probably sort input first
-        filt="results/E05_mapped_resolved_originals_filtered.pafx"
+        filt="results/E05_mapped_resolved_originals_filtered.pafxe"
     params:
         allowOverlappingGenes=config["flag_allow_overlapping_genes"],
         workflowDir=workflow.basedir
+    localrule: True
     conda: "../envs/sda2.main.yml"
-    localrule: True # TODO Double check
     log: "logs/E05_FilterOverlappingGenes.log"
     benchmark: "benchmark/E05_FilterOverlappingGenes.tsv"
     shell:"""
@@ -184,13 +184,11 @@ rule E05_FilterOverlappingGenes:
         if [ {params.allowOverlappingGenes} = "True" ]
         then
             echo "### Do not remove overlapping or intronic genes: create symlink instead." >> {log}
-            ln -s {params.workflowDir}/../{input.pafx} {params.workflowDir}/../{output.filt}
+            ln -s {params.workflowDir}/../{input.pafxe} {params.workflowDir}/../{output.filt}
         else
             echo "### Remove intronic and otherwise overlapping genes" >> {log}
-            cat {input.pafx} | \
-                awk 'BEGIN {{OFS="\\t"}} {{print $0,NR,"0"}}' | \
-                {params.workflowDir}/scripts/E05_NetworkFilter.py /dev/stdin | \
-                awk 'BEGIN {{OFS="\\t"}} ($22==1) {{print $0}}' | \
+            {params.workflowDir}/scripts/E05_NetworkFilter.py {input.pafxe} | \
+                awk 'BEGIN {{OFS="\\t"}} ($21==1) {{print $0}}' | \
                 cut -f1-20 1> {output.filt} # TODO Pick and tune optimal networking alg
         fi
     }} 2>> {log}
@@ -198,7 +196,7 @@ rule E05_FilterOverlappingGenes:
 
 rule E06_FinalResolvedCopiesBed:
     input:
-        pafx="results/E05_mapped_resolved_originals_filtered.pafx"
+        pafx="results/E05_mapped_resolved_originals_filtered.pafxe"
     output:
         bed="results/E06_mapped_resolved_originals_filtered.bed"
     localrule: True
