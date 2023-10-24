@@ -162,6 +162,9 @@ for u,v,o in edgeList:
 
 del edgeList
 
+print("- "+str(len(overlapGraph.nodes))+" gene isoforms detected.", file=sys.stderr)
+print("- "+str(len(overlapGraph.edges))+" isoform to isoform exon overlaps.", file=sys.stderr)
+
 # Community Detection
 print("-- Detecting Communities", file=sys.stderr)
 subgraphs=[]
@@ -172,6 +175,7 @@ for subgraph_nodes in sorted(nx.connected_components(overlapGraph),key=len,rever
     coms=nx.community.label_propagation_communities(sub)
     for c in coms:
         communities_lpa.append(c)
+print("- "+str(len(communities_lpa))+" gene communities detected.", file=sys.stderr)
 
 # communities_lpa=sorted(communities_lpa, key=len, reverse=True) # Useful for testing only - TODO Delete Me
 
