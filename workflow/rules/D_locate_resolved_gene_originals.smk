@@ -4,8 +4,8 @@
 # - D03 bamToBed (out bed)
 # - D04 filter out single exon
 # - D05 filter >= MIN_HIT_LENGTH
-# - D06 get fasta of resolved original hits
-# - D07 properly name resolved original hits fasta
+# - D07 get fasta of resolved original hits
+# - D08 properly name resolved original hits fasta
 
 
 rule D01_FindResolvedOriginals:
@@ -64,7 +64,7 @@ rule D02_FilterResolvedOriginals_FiltPercentAligned:
     shell:"""
     {{
         echo "##### D02_FilterResolvedOriginals_FiltPercentAligned" > {log}
-        echo "### Minimap Gene Model" >> {log}
+        echo "### Filter Gene Model" >> {log}
         
             {params.workflowDir}/scripts/D02_FilterMappedLength.py {input.bam} | \
                 samtools view -b -o {output.filt}
@@ -139,39 +139,70 @@ rule D05_FilterResolvedOriginals_FiltMinLength:
                     {{print}}' 1> {output.filt} 2>> {log}
     """
 
-rule D06_GetResolvedOriginalsFasta_unnamed:
+rule D06_FilterOverlappingGenes:
     input:
-        bed="results/D05_resolved_originals_filtMinLength.bed",
+        bed="results/D05_resolved_originals_filtMinLength.bed"
+    output:
+        filt="results/D06_resolved_originals_filtOverlapping.bed"
+    params:
+        allowOverlappingGenes=config["flag_allow_overlapping_genes"],
+        workflowDir=workflow.basedir
+    resources:
+        mem_mb=cluster_mem_mb_small,
+        cpus_per_task=cluster_cpus_per_task_baby,
+        runtime=config["cluster_runtime_short"]
+    conda: "../envs/sda2.main.yml"
+    log: "logs/D06_FilterOverlappingGenes.log"
+    benchmark: "benchmark/D06_FilterOverlappingGenes.tsv"
+    shell:"""
+    {{
+        echo "##### D06_FilterOverlappingGenes" > {log}
+        if [ {params.allowOverlappingGenes} = "True" ]
+        then
+            echo "### Do not remove overlapping or intronic genes: create symlink instead." >> {log}
+            ln -s {params.workflowDir}/../{input.bed} {params.workflowDir}/../{output.filt}
+        else
+            echo "### Remove intronic and otherwise overlapping genes" >> {log}
+            {params.workflowDir}/scripts/D06_NetworkFilter.py {input.bed} | \
+                awk 'BEGIN {{OFS="\\t"}} ($9==1) {{print $0}}' | \
+                cut -f1-8 1> {output.filt}
+        fi
+    }} 2>> {log}
+    """
+
+rule D07_GetResolvedOriginalsFasta_unnamed:
+    input:
+        bed="results/D06_resolved_originals_filtOverlapping.bed",
         asm="results/A01_assembly.fasta"
     output:
-        rgn=temp("results/D06_resolved_originals_filtMinLength.rgn"),
-        fa="results/D06_resolved_originals_unnamed.fasta"
+        rgn=temp("results/D07_resolved_originals_filtMinLength.rgn"),
+        fa="results/D07_resolved_originals_unnamed.fasta"
     resources:
         mem_mb=cluster_mem_mb_baby,
         cpus_per_task=cluster_cpus_per_task_baby,
         runtime=config["cluster_runtime_short"]
     conda: "../envs/sda2.main.yml"
-    log: "logs/D06_GetResolvedOriginalsFasta_unnamed.log"
-    benchmark: "benchmark/D06_GetResolvedOriginalsFasta_unnamed.tsv"
+    log: "logs/D07_GetResolvedOriginalsFasta_unnamed.log"
+    benchmark: "benchmark/D07_GetResolvedOriginalsFasta_unnamed.tsv"
     shell:"""
-        echo "##### D06_GetResolvedOriginalsFasta_unnamed" > {log}
+        echo "##### D07_GetResolvedOriginalsFasta_unnamed" > {log}
         cat {input.bed} | awk '{{print $1":"$2"-"$3 }}' 1> {output.rgn} 2>> {log}
         samtools faidx {input.asm} -r {output.rgn} 1> {output.fa} 2>> {log}
     """
 
-rule D07_GetResolvedOriginalsFasta:
+rule D08_GetResolvedOriginalsFasta:
     input:
-        fa_unnamed="results/D06_resolved_originals_unnamed.fasta",
-        bed="results/D05_resolved_originals_filtMinLength.bed"
+        fa_unnamed="results/D07_resolved_originals_unnamed.fasta",
+        bed="results/D06_resolved_originals_filtOverlapping.bed"
     output:
-        fa="results/D07_resolved_originals.fasta"
+        fa="results/D08_resolved_originals.fasta"
     params:
         workflowDir=workflow.basedir
     localrule: True
     conda: "../envs/sda2.main.yml"
-    log: "logs/D07_GetResolvedOriginalsFasta.log"
-    benchmark: "benchmark/D07_GetResolvedOriginalsFasta.tsv"
+    log: "logs/D08_GetResolvedOriginalsFasta.log"
+    benchmark: "benchmark/D08_GetResolvedOriginalsFasta.tsv"
     shell:"""
-        echo "##### D07_GetResolvedOriginalsFasta" > {log}
-        {params.workflowDir}/scripts/D07_RenameFastaWithGenes.py {input.fa_unnamed} {input.bed} 1> {output.fa} 2>> {log}
+        echo "##### D08_GetResolvedOriginalsFasta" > {log}
+        {params.workflowDir}/scripts/D08_RenameFastaWithGenes.py {input.fa_unnamed} {input.bed} 1> {output.fa} 2>> {log}
     """

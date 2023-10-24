@@ -22,7 +22,7 @@
 rule E01_GetResolvedCopiesPaf:
     input:
         asm="results/A01_assembly.fasta",
-        fa="results/D07_resolved_originals.fasta"
+        fa="results/D08_resolved_originals.fasta"
     output:
         paf="results/E01_resolved_copies.paf"
     resources:
@@ -166,37 +166,37 @@ rule E04_LocateExons:
     }} 2>> {log}
     """
 
-rule E05_FilterOverlappingGenes:
-    input:
-        pafxe="results/E04_mapped_resolved_originals_wExons.pafxe"
-    output: # TODO should probably sort input first
-        filt="results/E05_mapped_resolved_originals_filtered.pafxe"
-    params:
-        allowOverlappingGenes=config["flag_allow_overlapping_genes"],
-        workflowDir=workflow.basedir
-    localrule: True
-    conda: "../envs/sda2.main.yml"
-    log: "logs/E05_FilterOverlappingGenes.log"
-    benchmark: "benchmark/E05_FilterOverlappingGenes.tsv"
-    shell:"""
-    {{
-        echo "##### E05_FilterOverlappingGenes" > {log}
-        if [ {params.allowOverlappingGenes} = "True" ]
-        then
-            echo "### Do not remove overlapping or intronic genes: create symlink instead." >> {log}
-            ln -s {params.workflowDir}/../{input.pafxe} {params.workflowDir}/../{output.filt}
-        else
-            echo "### Remove intronic and otherwise overlapping genes" >> {log}
-            {params.workflowDir}/scripts/E05_NetworkFilter.py {input.pafxe} | \
-                awk 'BEGIN {{OFS="\\t"}} ($21==1) {{print $0}}' | \
-                cut -f1-20 1> {output.filt} # TODO Pick and tune optimal networking alg
-        fi
-    }} 2>> {log}
-    """
+# rule E05_FilterOverlappingGenes: # This rule is now rule D06_FilterOverlappingGenes TODO Delete this block
+#     input:
+#         pafxe="results/E04_mapped_resolved_originals_wExons.pafxe"
+#     output: # TODO should probably sort input first
+#         filt="results/E05_mapped_resolved_originals_filtered.pafxe"
+#     params:
+#         allowOverlappingGenes=config["flag_allow_overlapping_genes"],
+#         workflowDir=workflow.basedir
+#     localrule: True
+#     conda: "../envs/sda2.main.yml"
+#     log: "logs/E05_FilterOverlappingGenes.log"
+#     benchmark: "benchmark/E05_FilterOverlappingGenes.tsv"
+#     shell:"""
+#     {{
+#         echo "##### E05_FilterOverlappingGenes" > {log}
+#         if [ {params.allowOverlappingGenes} = "True" ]
+#         then
+#             echo "### Do not remove overlapping or intronic genes: create symlink instead." >> {log}
+#             ln -s {params.workflowDir}/../{input.pafxe} {params.workflowDir}/../{output.filt}
+#         else
+#             echo "### Remove intronic and otherwise overlapping genes" >> {log}
+#             {params.workflowDir}/scripts/E05_NetworkFilter.py {input.pafxe} | \
+#                 awk 'BEGIN {{OFS="\\t"}} ($21==1) {{print $0}}' | \
+#                 cut -f1-20 1> {output.filt}
+#         fi
+#     }} 2>> {log}
+#     """
 
 rule E06_FinalResolvedCopiesBed:
     input:
-        pafx="results/E05_mapped_resolved_originals_filtered.pafxe"
+        pafx="results/E04_mapped_resolved_originals_wExons.pafxe"
     output:
         bed="results/E06_mapped_resolved_originals_filtered.bed"
     localrule: True
