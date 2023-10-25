@@ -67,7 +67,7 @@ isoforms = np.empty([numTotalCopies],
                                      'u8','u8',
                                      'u8','u1','u8')})
 
-GENE_ISOFORMS_I=0
+GENE_ISOFORMS_I=3
 COPY_ID_ISOFORMS_I=8
 PICKED_ISOFORMS_I=9
 EXON_SUM_ISOFORMS_I=10
