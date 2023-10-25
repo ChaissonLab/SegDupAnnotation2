@@ -6,7 +6,7 @@
 # 05/24/23
 
 # Purpose: Identify consensus isoforms from isoform clusters using lpa community detection on hits whose exons overlap.
-# Input: Bed12 file
+# Input: Bed12 filepath
 # Output: First 8 cols of Bed12 input file with a final column noting 0 if filtered out or 1 if hit remains in final set.
 
 ### NOTE: At this time, input cannot be piped in, since input file is accessed multiple times.
@@ -25,6 +25,7 @@ print("---- Running D06_NetworkFilter.py", file=sys.stderr)
 print("-- Parsing Input", file=sys.stderr)
 parser = argparse.ArgumentParser(description="Filter out extra isoforms.")
 parser.add_argument("bed_filepath", help="Input bed12 file. (Including comma separated list of exon lengths, then a comma separated list of exon start positions.)")
+parser.add_argument("communities_filepath", help="Output tab separated file of consensus isoform. (The columns are: consensus isoform, comma separated list of isoforms in the consensus isoform's community.)")
 args = parser.parse_args()
 
 # Determine array dimensions
@@ -66,6 +67,7 @@ isoforms = np.empty([numTotalCopies],
                                      'u8','u8',
                                      'u8','u1','u8')})
 
+GENE_ISOFORMS_I=0
 COPY_ID_ISOFORMS_I=8
 PICKED_ISOFORMS_I=9
 EXON_SUM_ISOFORMS_I=10
@@ -179,11 +181,14 @@ print("- "+str(len(communities_lpa))+" gene communities detected.", file=sys.std
 
 # communities_lpa=sorted(communities_lpa, key=len, reverse=True) # Useful for testing only - TODO Delete Me
 
+coms_out = open(args.communities_filepath,"w")
+print("\t".join(["consensus_isoform","all_isoforms_in_community"]),file=coms_out)
 for c in communities_lpa:
     # Identify Consensus Node
     big_n = next(iter(c))
     big_oa = 0
     sub_c = overlapGraph.subgraph(c).copy()
+    iso_names = []
     for n in c:
         sum_oa = 0
         for u,v in sub_c.edges(n): # for each edge of node n
@@ -191,14 +196,19 @@ for c in communities_lpa:
         if sum_oa > big_oa:
             big_oa = sum_oa
             big_n = n
+        iso_names.append(isoforms[n][GENE_ISOFORMS_I])
     # Record Consensus Node
     picked=big_n
     isoforms[picked][PICKED_ISOFORMS_I]=1
+    print("\t".join([isoforms[picked][GENE_ISOFORMS_I],
+                     ",".join(iso_names)]),
+          file=coms_out)
+coms_out.close()
 
 # Output Data
 print("-- Printing Output", file=sys.stderr)
 df=pd.DataFrame(isoforms)
 df=df.drop('copy_id',axis=1) # delete copy_id col
-df=df.drop('exon_sum',axis=1) # delte exon_sum col
+df=df.drop('exon_sum',axis=1) # delete exon_sum col
 
 df.to_csv(sys.stdout,sep="\t",encoding='utf-8',header=False,index=False)

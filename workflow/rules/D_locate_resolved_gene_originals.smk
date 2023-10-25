@@ -143,7 +143,8 @@ rule D06_FilterOverlappingGenes:
     input:
         bed="results/D05_resolved_originals_filtMinLength.bed"
     output:
-        filt="results/D06_resolved_originals_filtOverlapping.bed"
+        filt="results/D06_resolved_originals_filtOverlapping.bed",
+        coms="results/D06_isoform_communities.tsv"
     params:
         allowOverlappingGenes=config["flag_allow_overlapping_genes"],
         workflowDir=workflow.basedir
@@ -162,8 +163,8 @@ rule D06_FilterOverlappingGenes:
             echo "### Do not remove overlapping or intronic genes: create symlink instead." >> {log}
             ln -s {params.workflowDir}/../{input.bed} {params.workflowDir}/../{output.filt}
         else
-            echo "### Remove intronic and otherwise overlapping genes" >> {log}
-            {params.workflowDir}/scripts/D06_NetworkFilter.py {input.bed} | \
+            echo "### Remove overlapping genes" >> {log}
+            {params.workflowDir}/scripts/D06_NetworkFilter.py {input.bed} {output.coms} | \
                 awk 'BEGIN {{OFS="\\t"}} ($9==1) {{print $0}}' | \
                 cut -f1-8 1> {output.filt}
         fi
