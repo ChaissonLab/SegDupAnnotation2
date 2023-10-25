@@ -164,8 +164,8 @@ for u,v,o in edgeList:
 
 del edgeList
 
-print("-  "+str(len(overlapGraph.nodes))+" gene isoforms detected.", file=sys.stderr)
-print("-  "+str(len(overlapGraph.edges))+" isoform to isoform exon overlaps.", file=sys.stderr)
+print("-  "+str(len(overlapGraph.nodes))+" gene isoforms detected (nodes).", file=sys.stderr)
+print("-  "+str(len(overlapGraph.edges))+" isoform to isoform exon overlaps (edges).", file=sys.stderr)
 
 # Community Detection
 print("-- Detecting Communities", file=sys.stderr)
