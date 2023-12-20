@@ -24,6 +24,10 @@ species=config["species"]
 tmpDir=config["temp"]
 bamFiles={f.split("/")[-1]: f for f in config["reads_bam"]}
 catchFilt=config["flag_filtered"] # TODO Unused param
+if config["hap2"] == "":
+    hap_aware_mode = False
+else:
+    hap_aware_mode = True
 
 # Rule Resource Variables
 
@@ -52,7 +56,10 @@ else:
     cluster_cpus_per_task_large  = config["override_num_cores"]
 
 ### Load Rules
-include: "rules/A_process_reads.smk"
+if hap_aware_mode:
+    include: "rules/A_hapAware_process_reads.smk"
+else:
+    include: "rules/A_process_reads.smk"
 include: "rules/B_hmm.smk"
 include: "rules/C_process_gene_model.smk"
 include: "rules/D_locate_resolved_gene_originals.smk"
@@ -73,6 +80,8 @@ rule all:
 
 onstart:
     print("Workflow started.")
+    if hap_aware_mode:
+        print("Haplotype Aware Mode Activated")
 onsuccess:
     print("Workflow finished without error.")
 onerror:

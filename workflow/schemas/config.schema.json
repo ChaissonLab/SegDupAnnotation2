@@ -22,9 +22,16 @@
             ] ]
         },
         "asm": {
-            "description": "File path to assembly of this species/individual's genome in fasta format.",
+            "description": "File path to assembly of this species/individual's genome in fasta format. If using haplotype-aware mode, place haplotype 1 here.",
             "type": "string",
-            "examples": [ "/scratch1/krabbani/data/raw_bTaeGut2/bTaeGut2.hic.hap1.s2.fasta" ]
+            "examples": [ "/scratch1/krabbani/data/raw_bTaeGut2/bTaeGut2.hic.hap1.s2.fasta",
+                          "/project/mchaisso_100/cmb-16/krabbani/analysis_hgsvc3/HG00171_hap1/results/HG00171.vrk-ps-sseq.asm-hap1.fasta" ]
+        },
+        "hap2": {
+            "description": "File path to haplotype 2 of this species/individual's genome in fasta format. If provided, will activate haplotype-aware mode.",
+            "type": "string",
+            "examples": [ "/project/mchaisso_100/cmb-16/krabbani/analysis_hgsvc3/HG00171_hap2/results/HG00171.vrk-ps-sseq.asm-hap2.fasta" ],
+            "default": ""
         },
         "genemodel": {
             "description": "Fasta file path of RNA transcripts of chosen gene model. Assumes default refseq format where gene code is in paranthesis, and parses fasta headers to find gene codes. If this is not true, fasta must be reformatted with header as gene code only.",
@@ -37,7 +44,7 @@
             "examples": [ "/scratch2/krabbani/sda_tmp/tmp_bTaeGut2_finch" ]
         },
         "read_type": {
-            "description": "Note PacBio read technology type (CLR vs CCS). Used for metadata purposes only.",
+            "description": "Note PacBio read technology type (CLR vs CCS).",
             "type": "string",
             "enum": [ "CCS", "CLR" ],
             "examples": [ "CCS", "CLR" ]
