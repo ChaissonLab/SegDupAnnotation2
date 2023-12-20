@@ -55,7 +55,7 @@ rule B03_CalcMeanCov:
     input:
         cov="results/B01_hmm/B01_cov_bins.bed.gz"
     output:
-       mc="results/B03_asm_mean_cov.txt"
+        mc="results/B03_asm_mean_cov.txt"
     localrule: True
     conda: "../envs/sda2.main.yml"
     log: "logs/B03_CalcMeanCov.log"
@@ -69,6 +69,51 @@ rule B03_CalcMeanCov:
     }} 2>> {log}
     """
 
+<<<<<<< HEAD
+=======
+rule B04_CalcMeanDepthPerChrom:
+    input:
+        cov="results/B01_hmm/B01_cov_bins.bed.gz",
+        mean="results/B03_asm_mean_cov.txt"
+    output:
+        tsv="results/B04_chr_mean_cov.tsv",
+        sexChrs="results/B04_sex_chrs.txt"
+    params:
+        min_sex_chr_len=10000000, # =10Mb
+        depth_margin=8 # TODO CHANGE THIS, Make it proportional or something
+    localrule: True
+    conda: "../envs/sda2.main.yml"
+    log: "logs/B04_CalcMeanChrPerChrom.log"
+    benchmark: "benchmark/B04_CalcMeanChrPerChrom.tsv"
+    shell:"""
+    {{
+        echo "##### B04_CalcMeanChrPerChrom" > {log}
+        # Assumes bin file sorted by chr name
+        zcat {input.cov} | \
+            awk 'BEGIN \
+                    {{OFS="\t"; \
+                    chr=""; depth_sum=0; count=0; chrDepth=0; \
+                    print "chr","mean_depth","length"}} \
+                (NR==1) \
+                    {{chr=$1}} \
+                (chr!=$1) \
+                    {{chrDepth=depth_sum/count; \
+                    print chr,chrDepth,count*100; \
+                    chr=$1; depth_sum=0; count=0}} \
+                (chr==$1) \
+                    {{depth_sum+=$4; count++}} \
+                END \
+                    {{print chr,chrDepth,count*100}}' > {output.tsv}
+
+        cat {output.tsv} | \
+            tail -n+2 | \
+            awk -v minLen={params.min_sex_chr_len} -v meanCov=$(cat {input.mean}) -v depthMargin={params.depth_margin} \
+                'BEGIN {{OFS="\\t"}} \
+                ($3>=minLen && $2<meanCov/2+depthMargin && $2>meanCov/2-depthMargin) \
+                    {{print $1}}' 1> {output.sexChrs}
+    }} 2>> {log}
+    """
+>>>>>>> bc3d581 (leiden isoform grouping implemented)
 
 # TODO Delete below, DO NOT USE
 # rule B03_CombineCNRanges:

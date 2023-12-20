@@ -13,7 +13,7 @@ rule A01_linkAsm:
         ln -s {input.asm} {params.workflowDir}/../{output.asmlink} 2>> {log}
     """
 
-rule A02_indexAsm:
+rule A02_faiIndexAsm:
     input:
         asm="results/A01_assembly.fasta"
     output:
@@ -36,12 +36,48 @@ rule A02_indexAsm:
         ln -s {params.workflowDir}/../{output.fai} {params.workflowDir}/../{output.lnk}
     """
 
+rule A03A_mmiIndexAsm:
+    input:
+        hap="results/A01_assembly.fasta"
+    output:
+        mmi="results/A03A_assembly.mmi"
+    params:
+        workflowDir=workflow.basedir,
+        read_type=config["read_type"]
+    resources:
+        mem_mb=cluster_mem_mb_medium,
+        cpus_per_task=cluster_cpus_per_task_small,
+        runtime=config["cluster_runtime_short"]
+    conda: "../envs/sda2.main.yml"
+    log: "logs/A03A_mmiIndexAsm.log"
+    benchmark: "benchmark/A03A_mmiIndexAsm.tsv"
+    shell:"""
+        echo "##### A03H_mmiIndexAsm" > {log}
+        echo "### Determine MM2 Parameters" >> {log}
+        if [ {params.read_type} = "CCS" ]
+        then
+            mm2_mode="map-hifi"
+        else
+            mm2_mode="map-pb"
+        fi
+        echo "Minimap2 -x preset: $mm2_mode" >> {log}
+
+        echo "### Create Minimap2 mmi Index" >> {log}
+        minimap2 -x $mm2_mode -d {output.mmi} {input.hap} -t {resources.cpus_per_task} 2>> {log}
+    """
+
 rule A03_alignReads:
     input:
         bam=lambda wildcards: bamFiles[wildcards.base],
-        asm=ancient("results/A01_assembly.fasta")
+        mmi=ancient("results/A03A_assembly.mmi")
     output:
+        fastq=temp("results/A03_aligned/A03_{base}.fastq"),
         aligned=temp("results/A03_aligned/A03_{base}.bam")
+<<<<<<< HEAD
+=======
+    params:
+        read_type=config["read_type"]
+>>>>>>> bc3d581 (leiden isoform grouping implemented)
     priority: 10
     resources:
         tmpdir=tmpDir,
@@ -57,18 +93,38 @@ rule A03_alignReads:
         echo "### Determine Node Variables" >> {log}
         mem_per_cpu="$(echo "{resources.mem_mb}/1.5/{resources.cpus_per_task}" | bc)"
         echo "Memory per cpu: $mem_per_cpu" >> {log}
+        numAdditionalThreads=$(echo "{resources.cpus_per_task} - 1" | bc)
+
+        echo "### Determine MM2 Parameters" >> {log}
+        if [ {params.read_type} = "CCS" ]
+        then
+            mm2_mode="map-hifi"
+        else
+            mm2_mode="map-pb"
+        fi
+        echo "Minimap2 -x preset: $mm2_mode" >> {log}
 
         echo "### Make Tmp Dir" >> {log}
-        tmp_sort_path=`mktemp -d -p {resources.tmpdir} reads.sort.XXXX.tmp`
+        tmp_collate_path=`mktemp -d -p {resources.tmpdir} A03.collate.XXXX.tmp`
+        tmp_mm2_path=`mktemp -d -p {resources.tmpdir} A03.mm2.XXXX.tmp`
+        tmp_sort_path=`mktemp -d -p {resources.tmpdir} A03.sort.XXXX.tmp`
 
         echo "### Align Reads" >> {log}
+<<<<<<< HEAD
         samtools view -h -F 2304 {input.bam} | \
             samtools fastq - | \
             minimap2 {input.asm} - -a -t {resources.cpus_per_task} | \
             samtools sort -T "$tmp_sort_path"/reads -m "$mem_per_cpu"MB -@ $(( {resources.cpus_per_task}-1 )) -o {output.aligned}
+=======
+        samtools view -h -F 2304 -u -@ "$numAdditionalThreads" {input.bam} | \
+            samtools collate -O -u -@ "$numAdditionalThreads" - "$tmp_collate_path" | \
+            samtools fastq -@ "$numAdditionalThreads" - > {output.fastq}
+        minimap2 {input.mmi} {output.fastq} -a -x "$mm2_mode" -t {resources.cpus_per_task} --split-prefix "$tmp_mm2_path" | \
+            samtools sort -T "$tmp_sort_path"/reads -m "$mem_per_cpu"M -@ "$numAdditionalThreads" -o {output.aligned}
+>>>>>>> bc3d581 (leiden isoform grouping implemented)
 
-        echo "### Delete Samtools Sort Tmp Dir and its Contents" >> {log}
-        rm -rf "$tmp_sort_path"
+        echo "### Delete Tmp Dirs and their Contents" >> {log}
+        rm -rf "$tmp_collate_path" "$tmp_mm2_path" "$tmp_sort_path"
     }} 2>> {log}
     """
 
@@ -92,7 +148,7 @@ rule A04_mergeReads:
     }} 2>> {log}
     """
 
-rule A05_indexBam:
+rule A05_baiIndexBam:
     input:
         bam="results/A04_assembly.bam"
     output:
@@ -111,7 +167,8 @@ rule A05_indexBam:
     {{
         echo "##### A05_mergeBams" > {log}
         echo "### Index Bam" >> {log}
-        samtools index {input.bam} -@{resources.cpus_per_task}
+        numAdditionalThreads=$(echo "{resources.cpus_per_task} - 1" | bc)
+        samtools index {input.bam} -@"$numAdditionalThreads"
 
         echo "### Create Link" >> {log}
         ln -s {params.workflowDir}/../{input.bam}.bai {params.workflowDir}/../{output.lnk}

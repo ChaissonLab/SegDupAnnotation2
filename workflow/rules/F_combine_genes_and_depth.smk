@@ -9,11 +9,6 @@
 #          -> combine with rule MappedSamIdentityDups
 # -     Combine isoforms based on gene name (like combine all VDACs if overlapping like SelectDupsOneIsoform - in addition to E05...)
 
-# Flow for next smk file:
-# - Get counts tables
-# - Calc summary stats
-# - Make figs
-
 rule F01_GetGeneCoverage: # naive depths
     input:
         depths="results/B01_hmm/B01_cov_bins.bed.gz", # presorted
@@ -32,8 +27,8 @@ rule F01_GetGeneCoverage: # naive depths
         echo "##### F01_GetGeneCoverage" > {log}
         zcat {input.depths} | \
             bedtools intersect -loj -sorted -a {input.genes} -b /dev/stdin | \
-            bedtools groupby -g 1,2,3,4,5,6,7,8,9,10,11 -c 15,15 -o mean,stdev 1> {output.bed}
-        # Out format: chr,start,end,gene,original_chr,original_start_original_end,strand,p_identity,p_accuracy,copy,depth_by_traditional(non-vcf),depth_by_traditional(non-vcf)-stdDev
+            bedtools groupby -g 1,2,3,4,5,6,7,8,9,10,11,12,13,14 -c 18,18 -o mean,stdev 1> {output.bed}
+        # Out format: chr,start,end,gene,original_chr,original_start,original_end,strand,p_identity,p_accuracy,copy,representative,exons_sizes,exon_starts,depth_by_traditional(non-vcf),depth_by_traditional(non-vcf)-stdDev
     }} 2>> {log}
     """
 
@@ -60,7 +55,7 @@ rule F02_LabelCopyNums:
                                         {{return i}}}} \
                 BEGIN \
                     {{OFS="\\t"}} \
-                {{print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12/meanCov,$13/meanCov,round($12/meanCov)}}' 1> {output.bed}
+                {{print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15/meanCov,$16/meanCov,round($15/meanCov)}}' 1> {output.bed}
     }} 2>> {log}
     """
 
@@ -86,9 +81,9 @@ rule F03_GetGeneHmmCoverage: # hmm vcf depths
             awk 'BEGIN {{OFS="\\t"}} ($4!=0) {{print}}' 1> {output.hmm_noZero}
         bedtools intersect -loj -a {input.genes} -b {output.hmm_noZero} -f 1 | \
             awk 'BEGIN {{OFS="\\t"}} \
-                {{if ($18==".") \
-                    {{$18=0}} \
-                print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$18}}' 1> {output.bed}
+                {{if ($21==".") \
+                    {{$21=0}} \
+                print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$21}}' 1> {output.bed}
         #original rule AddDepthCopyNumber then has bedtools groupby -g 1-4 -c 19 -o max (then cuts and pastes) TODO Delete this line - for reference to original method only
     }} 2>> {log}
     """
@@ -111,7 +106,7 @@ rule F04_FilterOutMinDepth:
             awk -v minDepth={params.minDepth} ' \
                 BEGIN \
                     {{OFS="\\t"}} \
-                ($12>minDepth) \
+                ($15>minDepth) \
                     {{print}}' 1> {output.filt}
     }} 2>> {log}
     """
@@ -120,14 +115,16 @@ rule F04_FilterOutMinDepth:
 #          - autosomes > 2 copies
 #          - sex chr > 1 copy
 #          - autosomes + sex chr > 1 copy
+#          - resolved duplication > 1 copy
 #          -> combine with rule MappedSamIdentityDups
 rule F05_FindDups:
     input:
-        bed="results/F04_resolved_copies_cn2_minDepthFilt.bed"
+        bed="results/F04_resolved_copies_cn2_minDepthFilt.bed",
+        sexChrs="results/B04_sex_chrs.txt"
     output:
-        dups="results/F05_dups.bed"
+        dups="results/F05_dups_allFams.bed"
     params:
-        sexChrs=expand("{base}",base=config["sex_chr"]),
+        sexChrs=expand("{base}",base=config["sex_chr"]), # TODO MAKE SEX CHR SELECTION USER FRIENDLY
         workflowDir=workflow.basedir
     localrule: True
     conda: "../envs/sda2.main.yml"
@@ -140,8 +137,57 @@ rule F05_FindDups:
         # traverse and isolate by gene groups
             # if copyNum of any copy > 1 or 2 keep gene group
             # if resolved copies present keep gene group
+        
+        # Determine Sex_chrs
+        sex_chr_flag=$(cat {input.sexChrs} | tr '\n' ' ' | sed 's/^/-s /g')
+
         cat {input.bed} | \
             sort -k4,4 -k11,11r -k5,5 -k6,6n -k7,7n -k1,1 -k2,2n -k3,3n | \
-            {params.workflowDir}/scripts/F05_SelectDuplications.py /dev/stdin -s {params.sexChrs} 1> {output.dups}
+            {params.workflowDir}/scripts/F05_SelectDuplications.py /dev/stdin $sex_chr_flag 1> {output.dups}
+                     # -s {params.sexChrs} 1> {output.dups}
     }} 2>> {log}
     """
+
+rule F06_GroupIsoformsByNonOverlapping:
+    input:
+        bed="results/F05_dups_allFams.bed"
+    output:
+        tsv="results/F06_isoforms_grouped_by_any_overlap.tsv"
+    localrule: True
+    conda: "../envs/sda2.main.yml"
+    log: "logs/F06_GroupIsoformsByNonOverlapping:.log"
+    shell:"""
+    {{
+        echo "##### F06_GroupIsoformsByNonOverlapping:" > {log}
+        cat {input.bed} | \
+            sort -k1,1 -k2,2n -k3,3n | \
+            awk 'BEGIN {{OFS="\t"; chrm=""; groupEnd=0; isos=""; isos_c=""}} \
+                (NR==1) \
+                    {{chrm=$1; groupEnd=$3}} \
+                ($1!=chrm || $2>groupEnd) \
+                    {{print isos,isos_c; \
+                    chrm=$1; groupEnd=$3; isos=""; isos_c=""}} \
+                {{isos=isos $4","; isos_c=isos_c $4"/"$1":"$2"-"$3","; \
+                if ($3>groupEnd) {{groupEnd=$3}}}} \
+                END \
+                    {{print isos,isos_c}}' > {output.tsv} # TODO combine duplicates like last part of NetworkFilter
+    }} 2>> {log}
+    """
+
+rule F07_PrintRepresentativesOnly:
+    input:
+        bed="results/F05_dups_allFams.bed"
+    output:
+        reps="results/F07_dups.bed"
+    localrule: True
+    conda: "../envs/sda2.main.yml"
+    log: "logs/F07_PrintRepresentativesOnly.log"
+    shell:"""
+    {{
+        echo "##### F07_PrintRepresentativesOnly" > {log}
+        cat {input.bed} | \
+            awk 'BEGIN {{OFS="\\t"}} ($12=="yes") \
+                {{print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$13,$14,$15,$16,$17,$18}}' 1> {output.reps}
+    }} 2>> {log}
+    """
+

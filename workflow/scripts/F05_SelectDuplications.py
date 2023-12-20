@@ -33,10 +33,13 @@ STRAND_I=7
 P_IDENTITY_I=8
 P_ACCURACY_I=9
 COPY_I=10
-DEPTH_RATIO_I=11
-CN_BY_DEPTH_STDEV_I=12
-CN_BY_DEPTH_I=13
-CN_BY_VCF_I=14
+REPRESENTATIVE_I=11
+EXON_SIZES_I=12
+EXON_STARTS_I=13
+DEPTH_RATIO_I=14
+CN_BY_DEPTH_STDEV_I=15
+CN_BY_DEPTH_I=16
+CN_BY_VCF_I=17
 
 if args.use_vcf_depth:
     CN_I=CN_BY_VCF_I
@@ -47,7 +50,10 @@ EXPECTED_HAPLOID_CN=1
 EXPECTED_DIPLOID_CN=2
 
 # Create set for Sex Chr Lookup
-s=set(args.sex_chrs) # look up using "chr in s"
+if (args.sex_chrs):
+    s=set(args.sex_chrs) # look up using "chr in s" TODO
+else:
+    s=set()
 
 # Helper Function to print collapsed or multicopy genes
 # Input non-empty 2D array of copies of a gene

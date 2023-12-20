@@ -6,9 +6,10 @@
 
 rule G01_AddHeader:
     input:
-        dups="results/F05_dups.bed"
+        dups="results/F07_dups.bed"
     output:
-        bed="results/G01_dups.bed"
+        bed="results/G01_dups.bed",
+        bed12="results/G01_dups.igv.bed"
     localrule: True
     conda: "../envs/sda2.main.yml"
     log: "logs/G01_AddHeader.log"
@@ -21,8 +22,15 @@ rule G01_AddHeader:
                 BEGIN \
                     {{OFS="\\t"; \
                     print "#chr","start","end","gene","orig_chr","orig_start","orig_end", \
-                    "strand","p_identity","p_accuracy","identity","depth","depth_stdev","copy_num","depth_by_vcf"}} \
-                {{print $0}}' 1> {output.bed}
+                    "strand","p_identity","p_accuracy","identity", \
+                    "depth","depth_stdev","copy_num","depth_by_vcf"}} \
+                {{print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$14,$15,$16,$17}}' 1> {output.bed}
+
+        echo "### IGV BED File" >> {log}
+        cat {input.dups} | \
+            awk 'BEGIN {{OFS="\\t"}} \
+                {{split($12,exonSizes,","); \
+                print $1,$2,$3,$4,int($9*1000),$8,$2,$3,"255,0,0",length(exonSizes),$12,$13}}' 1> {output.bed12}
     }} 2>> {log}
     """
 

@@ -4,8 +4,14 @@
 # - D03 bamToBed (out bed)
 # - D04 filter out single exon
 # - D05 filter >= MIN_HIT_LENGTH
+<<<<<<< HEAD
 # - D07 get fasta of resolved original hits
 # - D08 properly name resolved original hits fasta
+=======
+##### - D06 filter/consolidate overlapping genes (and pick representative gene for gene communities) ## MOVED BACK TO E04/E05 # TODO Delete Line
+# - D06 get fasta of resolved original hits
+# - D07 properly name resolved original hits fasta
+>>>>>>> bc3d581 (leiden isoform grouping implemented)
 
 
 rule D01_FindResolvedOriginals:
@@ -171,39 +177,44 @@ rule D06_FilterOverlappingGenes:
     }} 2>> {log}
     """
 
-rule D07_GetResolvedOriginalsFasta_unnamed:
+rule D06_GetResolvedOriginalsFasta_unnamed:
     input:
         bed="results/D06_resolved_originals_filtOverlapping.bed",
         asm="results/A01_assembly.fasta"
     output:
-        rgn=temp("results/D07_resolved_originals_filtMinLength.rgn"),
-        fa="results/D07_resolved_originals_unnamed.fasta"
+        rgn=temp("results/D06_resolved_originals_filtMinLength.rgn"),
+        fa="results/D06_resolved_originals_unnamed.fasta"
     resources:
         mem_mb=cluster_mem_mb_baby,
         cpus_per_task=cluster_cpus_per_task_baby,
         runtime=config["cluster_runtime_short"]
     conda: "../envs/sda2.main.yml"
-    log: "logs/D07_GetResolvedOriginalsFasta_unnamed.log"
-    benchmark: "benchmark/D07_GetResolvedOriginalsFasta_unnamed.tsv"
+    log: "logs/D06_GetResolvedOriginalsFasta_unnamed.log"
+    benchmark: "benchmark/D06_GetResolvedOriginalsFasta_unnamed.tsv"
     shell:"""
-        echo "##### D07_GetResolvedOriginalsFasta_unnamed" > {log}
+        echo "##### D06_GetResolvedOriginalsFasta_unnamed" > {log}
         cat {input.bed} | awk '{{print $1":"$2"-"$3 }}' 1> {output.rgn} 2>> {log}
         samtools faidx {input.asm} -r {output.rgn} 1> {output.fa} 2>> {log}
     """
 
-rule D08_GetResolvedOriginalsFasta:
+rule D07_GetResolvedOriginalsFasta:
     input:
+<<<<<<< HEAD
         fa_unnamed="results/D07_resolved_originals_unnamed.fasta",
         bed="results/D06_resolved_originals_filtOverlapping.bed"
+=======
+        fa_unnamed="results/D06_resolved_originals_unnamed.fasta",
+        bed="results/D05_resolved_originals_filtMinLength.bed"
+>>>>>>> bc3d581 (leiden isoform grouping implemented)
     output:
-        fa="results/D08_resolved_originals.fasta"
+        fa="results/D07_resolved_originals.fasta"
     params:
         workflowDir=workflow.basedir
     localrule: True
     conda: "../envs/sda2.main.yml"
-    log: "logs/D08_GetResolvedOriginalsFasta.log"
-    benchmark: "benchmark/D08_GetResolvedOriginalsFasta.tsv"
+    log: "logs/D07_GetResolvedOriginalsFasta.log"
+    benchmark: "benchmark/D07_GetResolvedOriginalsFasta.tsv"
     shell:"""
-        echo "##### D08_GetResolvedOriginalsFasta" > {log}
-        {params.workflowDir}/scripts/D08_RenameFastaWithGenes.py {input.fa_unnamed} {input.bed} 1> {output.fa} 2>> {log}
+        echo "##### D07_GetResolvedOriginalsFasta" > {log}
+        {params.workflowDir}/scripts/D07_RenameFastaWithGenes.py {input.fa_unnamed} {input.bed} 1> {output.fa} 2>> {log}
     """

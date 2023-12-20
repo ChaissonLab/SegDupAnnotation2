@@ -43,7 +43,7 @@
             "examples": [ "CCS", "CLR" ]
         },
         "sex_chr": {
-            "description": "List of sex chromosome names in given assembly.",
+            "description": "List of sex chromosome (haploid chromosome) names in given assembly. Remember Human Female asms have a diploid X chromosomes.",
             "type": "array",
             "items": {
                 "type": "string"
@@ -94,7 +94,12 @@
             "description": "When true filters out genes in gene model with gene names beginning with 'LOC'.",
             "type": "boolean",
             "examples": [ true, false],
-            "default": true
+            "default": false
+        },
+        "uncharacterized_gene_name_prefix": {
+            "description": "Gene model gene name prefix to filter out when flag_filt_uncharacterized_genes is true. Also used by Network Filter to deprioritize uncharacterized genes when picking a representative gene for a gene family.",
+            "type": "string",
+            "examples": ["ENSG", "LOC"]
         },
         "flag_allow_overlapping_genes": {
             "description": "When false group overlapping genes using network based approach.",

@@ -17,7 +17,7 @@ min_version("7.25.0") # Created using Snakemake v7.25.0
 configfile: "config/sd_analysis.json"
 validate(config, "schemas/config.schema.json", set_default=True)
 
-containerized: "docker://krabbani/segdupannotation2:1.1.s"
+containerized: "docker://krabbani/segdupannotation2:1.2.s"
 
 ### Variables & Constants
 species=config["species"]
@@ -63,6 +63,7 @@ include: "rules/G_summarize_results.smk"
 ### Target Rules
 rule all:
     input:
+        "results/B04_chr_mean_cov.tsv",
         "results/G01_dups.bed",
         "results/G02_dups_fact.bed",
         "results/G03_per_gene_counts.bed",

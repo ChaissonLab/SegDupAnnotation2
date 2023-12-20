@@ -1,28 +1,22 @@
 # Flow of this smk file:
-# - D01 map asm to model (getting resolved originals)
-# - D02 filter keeping >50% aligned resolved original hits to seq (and index?) (out=bam)
-# - D03 bamToBed (out bed)
-# - D04 filter out multi exon
-# - D05 filter >= MIN_HIT_LENGTH
-# - D06 get fasta of resolved original hits
-# - D07 properly name resolved original hits fasta
-#
-#
 # - E01 map resolved originals to asm (out: paf)
 # - E02 Needleman Wunch alignment of copy hits to original (calc matches/mismatches/etc)
 # - E02 calculate resolved copy identity/accuracy
 # - E03 filter by identity/accuracy
-# - E04 identify exon lengths
-# - E05 network approach for overlapping similar sized genes (giving Original priority)
-# - E06 paf to bed
-# - E07 Annotate Original and sort by gene then by hit loc
-# - E08 Filter by Original's hit length margin
+# - E04 Annotate Original and sort by gene then by hit loc
+# - E05 Filter by Original's hit length margin
+# - E06 identify exon lengths
+# - E07 Overlapping Nework Filter (to consolidate overlapping genes)
+# - E08 paf to bed
+
+# - E09 (Disable E07 and D06 when using.) Filter isoforms with >10% overlap.
+# - E10 Take list of overlapping genes condensed by E09, pick a consensus gene label and relabel all isoforms in a given community with that label.
 
 
 rule E01_GetResolvedCopiesPaf:
     input:
         asm="results/A01_assembly.fasta",
-        fa="results/D08_resolved_originals.fasta"
+        fa="results/D07_resolved_originals.fasta"
     output:
         paf="results/E01_resolved_copies.paf"
     resources:
@@ -75,7 +69,7 @@ rule E03_FilterLowIdentityPaf:
     input:
         pafx="results/E02_mapped_resolved_originals.pafx"
     output:
-        filt="results/E03_mapped_resolved_originals_filtered.pafx"
+        filt="results/E03_mapped_resolved_originals_filtered_by_identity.pafx"
     params:
         min_copy_identity=config["min_copy_identity"]
     localrule: True
@@ -95,15 +89,76 @@ rule E03_FilterLowIdentityPaf:
     }} 2>> {log}
     """
 
-# Locate Exons in gene copies and filter out gene copies that contain <50% of their gene model
-rule E04_LocateExons:
+rule E04_AnnotateOriginal:
     input:
-        pafx="results/E03_mapped_resolved_originals_filtered.pafx",
+        pafx="results/E03_mapped_resolved_originals_filtered_by_identity.pafx"
+    output:
+        pafxAn="results/E04_mapped_resolved_originals_filtered_ogAnnotated.pafx"
+    params:
+        marginToCallOriginal=100
+    localrule: True
+    conda: "../envs/sda2.main.yml"
+    log: "logs/E04_AnnotateOriginal.log"
+    shell:"""
+    {{
+        echo "##### E04_AnnotateOriginal" > {log}
+        cat {input.pafx} | \
+            tr '/' '\\t' | \
+            awk -v margin={params.marginToCallOriginal} ' \
+                function abs(v) {{v += 0; return v < 0 ? -v : v}} \
+                BEGIN \
+                    {{OFS="\\t"}} \
+                {{split($2,og,":"); \
+                split(og[2],ogLocs,"-"); \
+                hit_chr=$7; hit_start=$9; hit_end=$10; \
+                og_chr=og[1]; og_start=ogLocs[1]; og_end=ogLocs[2]; \
+                if (og_chr==hit_chr && abs(og_start-hit_start)<margin && abs(og_end-hit_end)<margin) \
+                    {{type="Original"}} \
+                else \
+                    {{type="Copy"}} \
+                print $1"/"$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,type}}' 1> {output.pafxAn}
+    }} 2>> {log}
+    """
+
+# Remove copies that deviate from its original copy's length by 0.1 of the original copy's length.
+rule E05_FiltByOriginalLengthMargin:
+    input:
+        pafx="results/E04_mapped_resolved_originals_filtered_ogAnnotated.pafx"
+    output:
+        filt="results/E05_mapped_resolved_originals_filtered_ogLength.pafx"
+    params:
+        maxLengthMargin=config["max_length_margin"]
+    localrule: True
+    conda: "../envs/sda2.main.yml"
+    log: "logs/E05_FiltByOriginalLengthMargin.log"
+    shell:"""
+    {{
+        echo "##### E05_FiltByOriginalLengthMargin" > {log}
+        cat {input.pafx} | \
+            awk -v maxLengthMargin={params.maxLengthMargin} ' \
+                BEGIN \
+                    {{OFS="\\t"; \
+                    highMarg=1+maxLengthMargin; \
+                    lowMarg=1-maxLengthMargin}} \
+                {{split($1,gene_name,"/"); \
+                split(gene_name[2],og,":"); \
+                split(og[2],ogLocs,"-"); \
+                og_start=ogLocs[1]; og_end=ogLocs[2]; }} \
+                (($9-$8)<highMarg*(og_end-og_start) && ($9-$8)>lowMarg*(og_end-og_start)) \
+                    {{print $0}}' 1> {output.filt}
+    }} 2>> {log}
+    """
+
+# Locate Exons in gene copies and filter out gene copies that contain <50% of their gene model
+rule E06_LocateExons:
+    input:
+        pafx="results/E05_mapped_resolved_originals_filtered_ogLength.pafx",
         gm="results/C03_gene_model_filt.fasta",
         asm="results/A01_assembly.fasta"
     output:
         gmidx="results/C03_gene_model_filt.fasta.fai",
-        pafxe="results/E04_mapped_resolved_originals_wExons.pafxe"
+        pafxe="results/E06_mapped_resolved_originals_wExons.pafxe",
+        igv_bed="results/E06_mapped_resolved_originals_wExons.igv.bed"
     params:
         workflowDir=workflow.basedir
     resources:
@@ -113,11 +168,11 @@ rule E04_LocateExons:
         tmpdir=tmpDir
     retries: 2
     conda: "../envs/sda2.main.yml"
-    log: "logs/E04_LocateExons.log"
-    benchmark: "benchmark/E04_LocateExons.tsv"
+    log: "logs/E06_LocateExons.log"
+    benchmark: "benchmark/E06_LocateExons.tsv"
     shell:"""
     {{
-        echo "##### E04_LocateExons" > {log}
+        echo "##### E06_LocateExons" > {log}
         echo "### Determine Node Variables" >> {log}
         mem_per_cpu="$(echo "{resources.mem_mb}/1.5/{resources.cpus_per_task}" | bc)"
         echo "Memory per cpu: $mem_per_cpu" >> {log}
@@ -163,113 +218,251 @@ rule E04_LocateExons:
         cat {input.pafx} | tr "\\t" " " | \
             xargs -P {resources.cpus_per_task} -I % bash -c ' \
                 locExons "$@" ' _ %
+
+        echo "### IGV BED File" >> {log} # TODO For testing Only DELETE ME
+        cat {output.pafxe} | \
+            awk 'BEGIN {{OFS="\\t"}} \
+                {{split($22,exonSizes,","); \
+                print $6,$8,$9,$1,int($19*1000),$5,$8,$9,"0,0,255",length(exonSizes),$22,$23}}' 1> {output.igv_bed}
     }} 2>> {log}
     """
 
-# rule E05_FilterOverlappingGenes: # This rule is now rule D06_FilterOverlappingGenes TODO Delete this block
+rule E07_ConsolidateOverlappingGenes:
+    input:
+        pafxe="results/E06_mapped_resolved_originals_wExons.pafxe"
+    output:
+        marked="results/E07_mapped_resolved_originals_annotated_network.pafxe",
+        filt="results/E07_mapped_resolved_originals_filtered_network.pafxe",
+        coms="results/E07_isoform_communities.tsv"
+    params:
+        allowOverlappingGenes=config["flag_allow_overlapping_genes"],
+        uncharacterized_prefix=config["uncharacterized_gene_name_prefix"],
+        workflowDir=workflow.basedir
+    localrule: True
+    conda: "../envs/sda2.main.yml"
+    log: "logs/E07_ConsolidateOverlappingGenes.log"
+    benchmark: "benchmark/E07_ConsolidateOverlappingGenes.tsv"
+    shell:"""
+    {{
+        echo "##### E07_ConsolidateOverlappingGenes" > {log}
+        if [ {params.allowOverlappingGenes} = "True" ]
+        then
+            echo "### Do not remove overlapping genes: create symlink instead." >> {log}
+            ln -s {params.workflowDir}/../{input.pafxe} {params.workflowDir}/../{output.filt}
+        else
+            echo "## Identify Prefix of Uncharacterized Genes" >> {log}
+            prefix="{params.uncharacterized_prefix}"
+            prefix_len=${{#prefix}}
+            if [[ $prefix_len -gt 0 ]]
+            then
+                echo "# Deprioritizing of gene names with prefix \'{params.uncharacterized_prefix}\' enabled when picking a representative gene name within a community as recognized bythe exon network filter." >> {log}
+                unchar_filt_flag="-u {params.uncharacterized_prefix}"
+            else
+                echo "# Deprioritization of uncharacterized genes when picking a representative gene name is disabled." >> {log}
+                unchar_filt_flag=""
+            fi
+
+            echo "### Annotate non-representative overlapping genes" >> {log}
+            {params.workflowDir}/scripts/E07_NetworkFilter.py {input.pafxe} {output.coms} "$unchar_filt_flag" 1> {output.marked}
+            cat {output.marked} | \
+                awk 'BEGIN {{OFS="\\t"}} ($24=="yes") {{print $0}}' | \
+                cut -f1-23 1> {output.filt}
+        fi
+    }} 2>> {log}
+    """
+
+rule E08_FinalResolvedCopiesBed:
+    input:
+        pafx="results/E07_mapped_resolved_originals_filtered_network.pafxe",
+        pafx_all="results/E07_mapped_resolved_originals_annotated_network.pafxe"
+    output:
+        bed="results/E08_resolved_copies.bed",
+        bed12="results/E08_resolved_copies.igv.bed" # filtered according to E07 Network Filter Results
+    localrule: True
+    conda: "../envs/sda2.main.yml"
+    log: "logs/E08_FinalResolvedCopiesBed.log"
+    shell:"""
+    {{
+        echo "##### E08_FinalResolvedCopiesBed" > {log}
+
+        cat {input.pafx_all} | \
+            awk 'BEGIN {{OFS="\\t"}} \
+                {{if ($5=="+") \
+                    {{strand=0}} \
+                else \
+                    {{strand=1}} \
+                split($1,gene_name,"/"); \
+                split(gene_name[2],og,":"); \
+                split(og[2],ogLocs,"-"); \
+                og_chr=og[1]; og_start=ogLocs[1]; og_end=ogLocs[2]; \
+            print $6,$8,$9,gene_name[1],og_chr,og_start,og_end,strand,$19,$20,$21,$24,$22,$23}}' | \
+            sort -k1,1 -k2,2n -k3,3n -k4,4 1> {output.bed}
+        # Out format: chr,start,end,gene,original_chr,original_start,original_end,strand,p_identity,p_accuracy,copy,representative,exons_sizes,exon_starts
+        # sorted by chrom, start, end, then gene
+
+        echo "### IGV BED File" >> {log}
+        cat {input.pafx} | \
+            awk 'BEGIN {{OFS="\\t"}} \
+                {{split($22,exonSizes,","); \
+                print $6,$8,$9,$1,int($19*1000),$5,$8,$9,"0,255,0",length(exonSizes),$22,$23}}' 1> {output.bed12}
+    }} 2>> {log}
+    """
+
+
+# E07 and E08 moved to before exon filter
+# rule E07_AnnotateOriginal:
 #     input:
-#         pafxe="results/E04_mapped_resolved_originals_wExons.pafxe"
-#     output: # TODO should probably sort input first
-#         filt="results/E05_mapped_resolved_originals_filtered.pafxe"
+#         bed="results/E08_mapped_resolved_originals_filtered.bed"
+#     output:
+#         bedAn="results/E07_mapped_resolved_originals_filtered_ogAnnotated.bed"
 #     params:
-#         allowOverlappingGenes=config["flag_allow_overlapping_genes"],
-#         workflowDir=workflow.basedir
+#         marginToCallOriginal=100
 #     localrule: True
 #     conda: "../envs/sda2.main.yml"
-#     log: "logs/E05_FilterOverlappingGenes.log"
-#     benchmark: "benchmark/E05_FilterOverlappingGenes.tsv"
+#     log: "logs/E07_AnnotateOriginal.log"
 #     shell:"""
 #     {{
-#         echo "##### E05_FilterOverlappingGenes" > {log}
-#         if [ {params.allowOverlappingGenes} = "True" ]
-#         then
-#             echo "### Do not remove overlapping or intronic genes: create symlink instead." >> {log}
-#             ln -s {params.workflowDir}/../{input.pafxe} {params.workflowDir}/../{output.filt}
-#         else
-#             echo "### Remove intronic and otherwise overlapping genes" >> {log}
-#             {params.workflowDir}/scripts/E05_NetworkFilter.py {input.pafxe} | \
-#                 awk 'BEGIN {{OFS="\\t"}} ($21==1) {{print $0}}' | \
-#                 cut -f1-20 1> {output.filt}
-#         fi
+#         echo "##### E07_AnnotateOriginal" > {log}
+#         cat {input.bed} | \
+#             tr '/' '\\t' | \
+#             awk -v margin={params.marginToCallOriginal} ' \
+#                 function abs(v) {{v += 0; return v < 0 ? -v : v}} \
+#                 BEGIN \
+#                     {{OFS="\\t"}} \
+#                 {{split($5,hit,":"); \
+#                 split(hit[2],hitLocs,"-"); \
+#                 og_chr=$1; og_start=$2; og_end=$3; \
+#                 hit_chr=hit[1]; hit_start=hitLocs[1]; hit_end=hitLocs[2]; \
+#                 if (og_chr==hit_chr && abs(og_start-hit_start)<margin && abs(og_end-hit_end)<margin) \
+#                     {{type="Original"}} \
+#                 else \
+#                     {{type="Copy"}} \
+#                 print $1,$2,$3,$4,hit_chr,hit_start,hit_end,$6,$7,$8,type}}' | \
+#                 sort -k1,1 -k2,2n -k3,3n -k4,4 1> {output.bedAn}
+#         # Out format: chr,start,end,gene,original_chr,original_start_original_end,strand,p_identity,p_accuracy,copy # sorted by chrom, start, end, then gene
 #     }} 2>> {log}
 #     """
 
-rule E06_FinalResolvedCopiesBed:
-    input:
-        pafx="results/E04_mapped_resolved_originals_wExons.pafxe"
-    output:
-        bed="results/E06_mapped_resolved_originals_filtered.bed"
-    localrule: True
-    conda: "../envs/sda2.main.yml"
-    log: "logs/E06_FinalResolvedCopiesBed.log"
-    shell:"""
-    {{
-        echo "##### E06_FinalResolvedCopiesBed" > {log}
-        cat {input.pafx} | awk 'BEGIN {{OFS="\\t"}} \
-        {{if ($5=="+") \
-            {{strand=0}} \
-        else \
-            {{strand=1}} \
-        print $6,$8,$9,$1,strand,$19,$20}}' 1> {output.bed}
-        # Out format: chr,start,end,original,strand,p_identity,p_accuracy
-    }} 2>> {log}
-    """
+# # Remove copies that deviate from its original copy's length by 0.1 of the original copy's length.
+# rule E08_FiltByOriginalLengthMargin:
+#     input:
+#         bed="results/E07_mapped_resolved_originals_filtered_ogAnnotated.bed"
+#     output:
+#         filt="results/E08_resolved_copies.bed"
+#     params:
+#         maxLengthMargin=config["max_length_margin"]
+#     localrule: True
+#     conda: "../envs/sda2.main.yml"
+#     log: "logs/E08_FiltByOriginalLengthMargin.log"
+#     shell:"""
+#     {{
+#         echo "##### E08_FiltByOriginalLengthMargin" > {log}
+#         cat {input.bed} | \
+#             awk -v maxLengthMargin={params.maxLengthMargin} ' \
+#                 BEGIN \
+#                     {{OFS="\\t"; \
+#                     highMarg=1+maxLengthMargin; \
+#                     lowMarg=1-maxLengthMargin}} \
+#                 (($3-$2)<highMarg*($7-$6) && ($3-$2)>lowMarg*($7-$6)) \
+#                     {{print $0}}' | \
+#                 sort -k1,1 -k2,2n -k3,3n -k4,4 1> {output.filt}
+#         # Out format: chr,start,end,gene,original_chr,original_start_original_end,strand,p_identity,p_accuracy,copy # sorted by chrom, start, end, then gene
+#     }} 2>> {log}
+#     """
 
-rule E07_AnnotateOriginal:
-    input:
-        bed="results/E06_mapped_resolved_originals_filtered.bed"
-    output:
-        bedAn="results/E07_mapped_resolved_originals_filtered_ogAnnotated.bed"
-    params:
-        marginToCallOriginal=100
-    localrule: True
-    conda: "../envs/sda2.main.yml"
-    log: "logs/E07_AnnotateOriginal.log"
-    shell:"""
-    {{
-        echo "##### E07_AnnotateOriginal" > {log}
-        cat {input.bed} | \
-            tr '/' '\\t' | \
-            awk -v margin={params.marginToCallOriginal} ' \
-                function abs(v) {{v += 0; return v < 0 ? -v : v}} \
-                BEGIN \
-                    {{OFS="\\t"}} \
-                {{split($5,hit,":"); \
-                split(hit[2],hitLocs,"-"); \
-                og_chr=$1; og_start=$2; og_end=$3; \
-                hit_chr=hit[1]; hit_start=hitLocs[1]; hit_end=hitLocs[2]; \
-                if (og_chr==hit_chr && abs(og_start-hit_start)<margin && abs(og_end-hit_end)<margin) \
-                    {{type="Original"}} \
-                else \
-                    {{type="Copy"}} \
-                print $1,$2,$3,$4,hit_chr,hit_start,hit_end,$6,$7,$8,type}}' | \
-                sort -k1,1 -k2,2n -k3,3n -k4,4 1> {output.bedAn}
-        # Out format: chr,start,end,gene,original_chr,original_start_original_end,strand,p_identity,p_accuracy,copy # sorted by chrom, start, end, then gene
-    }} 2>> {log}
-    """
 
-rule E08_FiltByOriginalLengthMargin:
-    input:
-        bed="results/E07_mapped_resolved_originals_filtered_ogAnnotated.bed"
-    output:
-        filt="results/E08_resolved_copies.bed"
-    params:
-        maxLengthMargin=config["max_length_margin"]
-    localrule: True
-    conda: "../envs/sda2.main.yml"
-    log: "logs/E08_FiltByOriginalLengthMargin.log"
-    shell:"""
-    {{
-        echo "##### E08_FiltByOriginalLengthMargin" > {log}
-        cat {input.bed} | \
-            awk -v maxLengthMargin={params.maxLengthMargin} ' \
-                BEGIN \
-                    {{OFS="\\t"; \
-                    highMarg=1+maxLengthMargin; \
-                    lowMarg=1-maxLengthMargin}} \
-                (($3-$2)<highMarg*($7-$6) && ($3-$2)>lowMarg*($7-$6)) \
-                    {{print $0}}' | \
-                sort -k1,1 -k2,2n -k3,3n -k4,4 1> {output.filt}
-        # Out format: chr,start,end,gene,original_chr,original_start_original_end,strand,p_identity,p_accuracy,copy # sorted by chrom, start, end, then gene
-    }} 2>> {log}
-    """
+
+
+# rule E09_SelectDupsOneIsoform: # Basically taken straight from the original SegDupAnnotation TODO
+#     input:
+#         bed="results/E08_resolved_copies_almost.bed"
+#     output:
+#         filt="results/E09_resolved_copies_geneLabelsNotGrouped.bed",
+#         g_names=temp("results/E09_uniq_gene_names.txt"),
+#         filt_coms=temp("results/E09_resolved_copies_with_communities.tsv"),
+#         coms=temp("results/E09_communities.tsv")
+#     params:
+#         #allowOverlappingGenes=config["flag_allow_overlapping_genes"],
+#         workflowDir=workflow.basedir
+#     resources:
+#         mem_mb=cluster_mem_mb_medium,
+#         cpus_per_task=cluster_cpus_per_task_large,
+#         runtime=config["cluster_runtime_short"],
+#         tmpdir=tmpDir
+#     retries: 2
+#     conda: "../envs/sda2.main.yml"
+#     log: "logs/E09_SelectDupsOneIsoform.log"
+#     benchmark: "benchmark/E09_SelectDupsOneIsoform.tsv"
+#     shell:"""
+#     {{
+#         echo "##### E09_SelectDupsOneIsoform - TODO TEMP SOLUTION" > {log}
+#         # Create Gene Names List
+#         cat {input.bed} | cut -f1 -d"|" | sort | uniq > {output.g_names}
+
+#         # Merge Genes with same prefix
+#         mergeGenes () {{ # input geneName
+#             grep -F "$@|" {input.bed} | \
+#                 bedtools sort | \
+#                 bedtools merge -c 4,5,6,7,8,9,10,11,4,5,6,7,8,9,10,11 -o first,first,first,first,first,mean,mean,first,collapse,collapse,collapse,collapse,collapse,collapse,collapse,collapse | \
+#                 awk 'BEGIN {{OFS="\\t"}} \
+#                     {{split($19,copyList,","); \
+#                     origFound=0; \
+#                     for (i in copyList) \
+#                         {{if (copyList[i] == "Original") \
+#                             {{origFound=1}} }} \
+#                     if (origFound == 1) \
+#                         {{print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,"Original",$12}} \
+#                     else \
+#                         {{print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,"Copy",$12}} }}'
+#         }}
+
+#         export -f mergeGenes
+
+#         cat {output.g_names} | \
+#             xargs -P {resources.cpus_per_task} -I % sh -c ' \
+#                 mergeGenes "$@" ' _ % | \
+#             bedtools sort | \
+#             {params.workflowDir}/scripts/E09_RemoveAnyOverlappingGenes.py | \
+#             sort -k1,1 -k2,2n -k3,3n -k4,4 > {output.filt_coms}
+
+#         cat {output.filt_coms} | cut -f1-11 > {output.filt}
+
+#         cat {output.filt_coms} | cut -f4,12 > {output.coms}
+
+#     }} 2>> {log}
+#     """
+
+#         # cat {output.g_names} | \
+#         #     xargs -P 64 -I % sh -c 'grep -F "^%|" {input.bed} | bedtools sort | bedtools merge -c 1,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20 -o first,collapse,collapse,collapse,collapse,collapse,collapse,collapse,collapse,collapse,collapse,collapse,collapse,collapse,collapse,collapse,collapse' | \
+
+
+#             #     cat {output.g_names} | \
+#             # xargs -P {resources.cpus_per_task} -I % sh -c ' \
+#             #     mergeGenes "$@" ' _ % | \
+#             # #sort -k4,4 -k5,5 -k6,6n -k7,7n -k1,1 -k2,2n | \
+#             # #bedtools groupby -g 1-7 -c 4,5,6,7 -o first,first,first,first -full | \
+#             # #sort -k4,4 -k5,5 -k6,6n -k7,7n -k1,1 -k2,2n | \
+#             # bedtools sort | \
+#             # {params.workflowDir}/scripts/E09_RemoveAnyOverlappingGenes.py > {output.filt}
+
+# rule E10_PickConsensusLabel:
+#     input:
+#         bed="results/E09_resolved_copies_geneLabelsNotGrouped.bed",
+#         coms="results/E09_communities.tsv"
+#     output:
+#         out_bed="results/E10_resolved_copies.bed",
+#         out_coms="results/E10_rep_communities.tsv"
+#     #localrule: True
+#     params:
+#         workflowDir=workflow.basedir
+#     localrule: True
+#     conda: "../envs/sda2.main.yml"
+#     log: "logs/E10_PickConsensusLabel.log"
+#     benchmark: "benchmark/E10_PickConsensusLabel.tsv"
+#     shell:"""
+#     {{
+#         echo "##### E10_PickConsensusLabel" > {log}
+#         {params.workflowDir}/scripts/E10_PickConsensusLabel.py {input.coms} {output.out_coms} {input.bed} {output.out_bed}
+#     }} 2>> {log}
+#     """
+>>>>>>> bc3d581 (leiden isoform grouping implemented)

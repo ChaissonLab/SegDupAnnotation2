@@ -79,6 +79,7 @@ rule C03_RemoveUncharacterizedGenes:
     log: "logs/C03_RemoveUncharacterizedGenes.log"
     params:
         filt_uncharacterized=config["flag_filt_uncharacterized_genes"],
+        uncharacterized_prefix=config["uncharacterized_gene_name_prefix"],
         workflowDir=workflow.basedir
     shell:"""
     {{
@@ -86,10 +87,10 @@ rule C03_RemoveUncharacterizedGenes:
         if [ {params.filt_uncharacterized} = "True" ]
         then
             echo "### Remove Uncharacterized Genes" >> {log}
-            cat {input.gm} | awk ' \
+            cat {input.gm} | awk -v unchar_prefix={params.uncharacterized_prefix} ' \
                 (/^>/) \
-                    {{ prefix=substr($0,1,4) }} \
-                (prefix!=">LOC") \
+                    {{ prefix=substr($0,1,length(unchar_prefix)+1) }} \
+                (prefix!=">"unchar_prefix) \
                     {{ print $0 }}' 1> {output.gm_noLOC}
         else
             echo "### Do not remove uncharacterized genes: create symlink instead." >> {log}
