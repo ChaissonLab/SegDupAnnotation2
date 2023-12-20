@@ -1,17 +1,12 @@
 # Flow of this smk file:
 # - D01 map asm to model (getting resolved originals)
-# - D02 filter keeping >50% aligned resolved original hits to seq (and index?) (out=bam)
+# - D02 filter keeping >50% aligned resolved original hits to seq (and index) (out=bam)
 # - D03 bamToBed (out bed)
-# - D04 filter out single exon
+# - D04 filter out single exon genes
 # - D05 filter >= MIN_HIT_LENGTH
-<<<<<<< HEAD
-# - D07 get fasta of resolved original hits
-# - D08 properly name resolved original hits fasta
-=======
 ##### - D06 filter/consolidate overlapping genes (and pick representative gene for gene communities) ## MOVED BACK TO E04/E05 # TODO Delete Line
 # - D06 get fasta of resolved original hits
 # - D07 properly name resolved original hits fasta
->>>>>>> bc3d581 (leiden isoform grouping implemented)
 
 
 rule D01_FindResolvedOriginals:
@@ -145,41 +140,50 @@ rule D05_FilterResolvedOriginals_FiltMinLength:
                     {{print}}' 1> {output.filt} 2>> {log}
     """
 
-rule D06_FilterOverlappingGenes:
-    input:
-        bed="results/D05_resolved_originals_filtMinLength.bed"
-    output:
-        filt="results/D06_resolved_originals_filtOverlapping.bed",
-        coms="results/D06_isoform_communities.tsv"
-    params:
-        allowOverlappingGenes=config["flag_allow_overlapping_genes"],
-        workflowDir=workflow.basedir
-    resources:
-        mem_mb=cluster_mem_mb_small,
-        cpus_per_task=cluster_cpus_per_task_baby,
-        runtime=config["cluster_runtime_short"]
-    conda: "../envs/sda2.main.yml"
-    log: "logs/D06_FilterOverlappingGenes.log"
-    benchmark: "benchmark/D06_FilterOverlappingGenes.tsv"
-    shell:"""
-    {{
-        echo "##### D06_FilterOverlappingGenes" > {log}
-        if [ {params.allowOverlappingGenes} = "True" ]
-        then
-            echo "### Do not remove overlapping or intronic genes: create symlink instead." >> {log}
-            ln -s {params.workflowDir}/../{input.bed} {params.workflowDir}/../{output.filt}
-        else
-            echo "### Remove overlapping genes" >> {log}
-            {params.workflowDir}/scripts/D06_NetworkFilter.py {input.bed} {output.coms} | \
-                awk 'BEGIN {{OFS="\\t"}} ($9==1) {{print $0}}' | \
-                cut -f1-8 1> {output.filt}
-        fi
-    }} 2>> {log}
-    """
+# rule D06_FilterOverlappingGenes:
+#     input:
+#         bed="results/D05_resolved_originals_filtMinLength.bed"
+#     output:
+#         filt="results/D06_resolved_originals_filtOverlapping.bed",
+#         coms="results/D06_isoform_communities.tsv",
+#         g_names="reasults/D06_resolved_originals_unique_gene_names.txt"
+#     params:
+#         allowOverlappingGenes=config["flag_allow_overlapping_genes"],
+#         workflowDir=workflow.basedir
+#     resources:
+#         mem_mb=cluster_mem_mb_small,
+#         cpus_per_task=cluster_cpus_per_task_baby,
+#         runtime=config["cluster_runtime_short"]
+#     conda: "../envs/sda2.main.yml"
+#     log: "logs/D06_FilterOverlappingGenes.log"
+#     benchmark: "benchmark/D06_FilterOverlappingGenes.tsv"
+#     shell:"""
+#     {{
+#         # echo "##### D06_FilterOverlappingGenes" > {log}
+#         # if [ {params.allowOverlappingGenes} = "True" ]
+#         # then
+#         #     echo "### Do not remove overlapping or intronic genes: create symlink instead." >> {log}
+#         #     ln -s {params.workflowDir}/../{input.bed} {params.workflowDir}/../{output.filt}
+#         # else
+#         #     echo "### Remove overlapping genes" >> {log}
+#         #     {params.workflowDir}/scripts/D06_NetworkFilter.py {input.bed} {output.coms} | \
+#         #         awk 'BEGIN {{OFS="\\t"}} ($9==1) {{print $0}}' | \
+#         #         cut -f1-8 1> {output.filt}
+#         # fi
+
+#         echo "##### D06_FilterOverlappingGenes - TEMP SOLUTION" > {log}
+#         # Create Gene Names List
+#         cat {input.bed} | cut -f4 | tr '-' '\t' | tr '|' '\t' | cut -f1 | sort | uniq > {output.g_names}
+#         cat {output.g_names} | \
+#             xargs -P 64 -I % sh -c 'grep -F "%|" {input.bed} | \
+
+
+#     }} 2>> {log}
+#     """
 
 rule D06_GetResolvedOriginalsFasta_unnamed:
     input:
-        bed="results/D06_resolved_originals_filtOverlapping.bed",
+        bed="results/D05_resolved_originals_filtMinLength.bed",
         asm="results/A01_assembly.fasta"
     output:
         rgn=temp("results/D06_resolved_originals_filtMinLength.rgn"),
@@ -199,13 +203,8 @@ rule D06_GetResolvedOriginalsFasta_unnamed:
 
 rule D07_GetResolvedOriginalsFasta:
     input:
-<<<<<<< HEAD
-        fa_unnamed="results/D07_resolved_originals_unnamed.fasta",
-        bed="results/D06_resolved_originals_filtOverlapping.bed"
-=======
         fa_unnamed="results/D06_resolved_originals_unnamed.fasta",
         bed="results/D05_resolved_originals_filtMinLength.bed"
->>>>>>> bc3d581 (leiden isoform grouping implemented)
     output:
         fa="results/D07_resolved_originals.fasta"
     params:
