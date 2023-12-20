@@ -65,7 +65,8 @@ def printDups(geneList):
             sexChrPresent=True
         geneCNCount+=int(copy[CN_I])
     if (sexChrPresent and geneCNCount > EXPECTED_HAPLOID_CN) or \
-       (not sexChrPresent and geneCNCount > EXPECTED_DIPLOID_CN):
+       (not sexChrPresent and geneCNCount > EXPECTED_DIPLOID_CN) or \
+       (len(geneList) >= 2):
         for copy in geneList:
             sys.stdout.write('\t'.join(copy)+'\n')
 
