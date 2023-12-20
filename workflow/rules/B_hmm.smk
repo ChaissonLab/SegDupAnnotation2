@@ -69,8 +69,6 @@ rule B03_CalcMeanCov:
     }} 2>> {log}
     """
 
-<<<<<<< HEAD
-=======
 rule B04_CalcMeanDepthPerChrom:
     input:
         cov="results/B01_hmm/B01_cov_bins.bed.gz",
@@ -113,7 +111,6 @@ rule B04_CalcMeanDepthPerChrom:
                     {{print $1}}' 1> {output.sexChrs}
     }} 2>> {log}
     """
->>>>>>> bc3d581 (leiden isoform grouping implemented)
 
 # TODO Delete below, DO NOT USE
 # rule B03_CombineCNRanges:

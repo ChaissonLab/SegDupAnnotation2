@@ -180,7 +180,7 @@ rule E06_LocateExons:
         echo "### Index Gene Model Fasta" >> {log}
         samtools faidx {input.gm}
 
-        > {resources.tmpdir}/tmp.multiLineTest.err # TODO Delte me
+        > {resources.tmpdir}/tmp.multiLineTest.err # TODO Delete me
 
         echo "### Locate Exons" >> {log}
         echo "## Create Locate Function" >> {log}
@@ -465,4 +465,3 @@ rule E08_FinalResolvedCopiesBed:
 #         {params.workflowDir}/scripts/E10_PickConsensusLabel.py {input.coms} {output.out_coms} {input.bed} {output.out_bed}
 #     }} 2>> {log}
 #     """
->>>>>>> bc3d581 (leiden isoform grouping implemented)

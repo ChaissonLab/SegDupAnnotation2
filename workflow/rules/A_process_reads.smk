@@ -1,17 +1,18 @@
+# HAPLOTYPE AWARE MODE DISABLED
 rule A01_linkAsm:
-    input:
-        asm=config["asm"]
-    output:
-        asmlink="results/A01_assembly.fasta"
-    params:
-        workflowDir=workflow.basedir
-    localrule: True
-    conda: "../envs/sda2.main.yml"
-    log: "logs/A01_linkAsm.log"
-    shell:"""
-        echo "##### A01_linkAsm" > {log}
-        ln -s {input.asm} {params.workflowDir}/../{output.asmlink} 2>> {log}
-    """
+        input:
+            asm=config["asm"]
+        output:
+            asmlink="results/A01_assembly.fasta"
+        params:
+            workflowDir=workflow.basedir
+        localrule: True
+        conda: "../envs/sda2.main.yml"
+        log: "logs/A01_linkAsm.log"
+        shell:"""
+            echo "##### A01_linkAsm" > {log}
+            ln -s {input.asm} {params.workflowDir}/../{output.asmlink} 2>> {log}
+        """
 
 rule A02_faiIndexAsm:
     input:
@@ -73,11 +74,8 @@ rule A03_alignReads:
     output:
         fastq=temp("results/A03_aligned/A03_{base}.fastq"),
         aligned=temp("results/A03_aligned/A03_{base}.bam")
-<<<<<<< HEAD
-=======
     params:
         read_type=config["read_type"]
->>>>>>> bc3d581 (leiden isoform grouping implemented)
     priority: 10
     resources:
         tmpdir=tmpDir,
@@ -110,18 +108,11 @@ rule A03_alignReads:
         tmp_sort_path=`mktemp -d -p {resources.tmpdir} A03.sort.XXXX.tmp`
 
         echo "### Align Reads" >> {log}
-<<<<<<< HEAD
-        samtools view -h -F 2304 {input.bam} | \
-            samtools fastq - | \
-            minimap2 {input.asm} - -a -t {resources.cpus_per_task} | \
-            samtools sort -T "$tmp_sort_path"/reads -m "$mem_per_cpu"MB -@ $(( {resources.cpus_per_task}-1 )) -o {output.aligned}
-=======
         samtools view -h -F 2304 -u -@ "$numAdditionalThreads" {input.bam} | \
             samtools collate -O -u -@ "$numAdditionalThreads" - "$tmp_collate_path" | \
             samtools fastq -@ "$numAdditionalThreads" - > {output.fastq}
         minimap2 {input.mmi} {output.fastq} -a -x "$mm2_mode" -t {resources.cpus_per_task} --split-prefix "$tmp_mm2_path" | \
             samtools sort -T "$tmp_sort_path"/reads -m "$mem_per_cpu"M -@ "$numAdditionalThreads" -o {output.aligned}
->>>>>>> bc3d581 (leiden isoform grouping implemented)
 
         echo "### Delete Tmp Dirs and their Contents" >> {log}
         rm -rf "$tmp_collate_path" "$tmp_mm2_path" "$tmp_sort_path"

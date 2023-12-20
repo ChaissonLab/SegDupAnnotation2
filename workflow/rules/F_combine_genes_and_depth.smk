@@ -6,6 +6,7 @@
 # - F05 Filter by copy number or collapse presence: (or at least label these)
 #          - autosomal > 2 copies
 #          - sex chr > 1 copy
+#          - resolved duplication > 1 copy
 #          -> combine with rule MappedSamIdentityDups
 # -     Combine isoforms based on gene name (like combine all VDACs if overlapping like SelectDupsOneIsoform - in addition to E05...)
 
