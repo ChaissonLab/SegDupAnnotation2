@@ -49,8 +49,8 @@
             "enum": [ "CCS", "CLR" ],
             "examples": [ "CCS", "CLR" ]
         },
-        "sex_chr": {
-            "description": "List of sex chromosome (haploid chromosome) names in given assembly. Remember Human Female asms have a diploid X chromosomes.",
+        "haploid_chrs": {
+            "description": "List of haploid/sex chromosome names in given assembly. Remember Human female genomes have diploid X chromosomes. Will only be used if flag_autodetect_haloid_chrs is not explicitly set to 'true'.",
             "type": "array",
             "items": {
                 "type": "string"
@@ -63,7 +63,14 @@
             ], [
                 "SUPER_W",
                 "SUPER_Z"
-            ] ]
+            ] ],
+            "default": []
+        },
+        "flag_autodetect_haploid_chrs": {
+            "description": "When true autodetects whether a chromosome is haploid or diploid to inform correct gene duplication accounting in rule F05_FindDups. Rule B05 detects haploid chromosome by looking for chromosomes with half the mean depth of the assembly. Chromosomes smaller than 10 Mb will not be selected as haploid chromosomes.",
+            "type": "boolean",
+            "examples": [ true, false],
+            "default": false
         },
         "min_copy_identity": {
             "description": "Minimum gene copy identity to keep when the gene copy is compared to the original copy.",

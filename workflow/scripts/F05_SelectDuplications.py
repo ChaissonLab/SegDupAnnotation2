@@ -17,7 +17,8 @@ import argparse
 parser = argparse.ArgumentParser(prog='F05_SelectDuplications.py',
                                  description="Pick out genes with resolved or collapsed duplications.")
 parser.add_argument("bed_filepath", help="Bed file with resolved copies and copy numbers. Must be sorted.") # TODO Define sort
-parser.add_argument('-s','--sex_chrs', nargs='+', help="Sex chromosomes listed.")
+parser.add_argument('-s','--sex_chrs_list', nargs='+', help="Space separated haploid/sex chromosomes list.")
+parser.add_argument('--sex_chrs_list_filepath',help="Path of line separated haploid/sex chromosomes list. Supderseded by -s/--sex_chrs_list flag.")
 parser.add_argument('--use_vcf_depth', action='store_true')
 args=parser.parse_args()
 
@@ -50,10 +51,17 @@ EXPECTED_HAPLOID_CN=1
 EXPECTED_DIPLOID_CN=2
 
 # Create set for Sex Chr Lookup
-if (args.sex_chrs):
-    s=set(args.sex_chrs) # look up using "chr in s" TODO
+if (args.sex_chrs_list):
+    s=set(args.sex_chrs_list) # look up using "chr in s" TODO
+elif (args.sex_chrs_list_filepath):
+    sexChrFile=open(args.sex_chrs_list_filepath)
+    s=set()
+    for line in sexChrFile:
+        s.add(line.strip())
+    sexChrFile.close()
 else:
     s=set()
+print(str(s),file=sys.stderr) # TODO DELETE ME Testing only
 
 # Helper Function to print collapsed or multicopy genes
 # Input non-empty 2D array of copies of a gene

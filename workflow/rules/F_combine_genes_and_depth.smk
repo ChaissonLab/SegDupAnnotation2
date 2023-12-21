@@ -121,11 +121,10 @@ rule F04_FilterOutMinDepth:
 rule F05_FindDups:
     input:
         bed="results/F04_resolved_copies_cn2_minDepthFilt.bed",
-        sexChrs="results/B04_sex_chrs.txt"
+        hapChrs="results/B05_haploid_chrs.txt"
     output:
         dups="results/F05_dups_allFams.bed"
     params:
-        sexChrs=expand("{base}",base=config["sex_chr"]), # TODO MAKE SEX CHR SELECTION USER FRIENDLY
         workflowDir=workflow.basedir
     localrule: True
     conda: "../envs/sda2.main.yml"
@@ -138,14 +137,10 @@ rule F05_FindDups:
         # traverse and isolate by gene groups
             # if copyNum of any copy > 1 or 2 keep gene group
             # if resolved copies present keep gene group
-        
-        # Determine Sex_chrs
-        sex_chr_flag=$(cat {input.sexChrs} | tr '\n' ' ' | sed 's/^/-s /g')
 
         cat {input.bed} | \
             sort -k4,4 -k11,11r -k5,5 -k6,6n -k7,7n -k1,1 -k2,2n -k3,3n | \
-            {params.workflowDir}/scripts/F05_SelectDuplications.py /dev/stdin $sex_chr_flag 1> {output.dups}
-                     # -s {params.sexChrs} 1> {output.dups}
+            {params.workflowDir}/scripts/F05_SelectDuplications.py /dev/stdin --sex_chrs_list_filepath {input.hapChrs} 1> {output.dups}
     }} 2>> {log}
     """
 

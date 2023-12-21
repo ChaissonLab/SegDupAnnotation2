@@ -71,14 +71,9 @@ rule B03_CalcMeanCov:
 
 rule B04_CalcMeanDepthPerChrom:
     input:
-        cov="results/B01_hmm/B01_cov_bins.bed.gz",
-        mean="results/B03_asm_mean_cov.txt"
+        cov="results/B01_hmm/B01_cov_bins.bed.gz"
     output:
-        tsv="results/B04_chr_mean_cov.tsv",
-        sexChrs="results/B04_sex_chrs.txt"
-    params:
-        min_sex_chr_len=10000000, # =10Mb
-        depth_margin=8 # TODO CHANGE THIS, Make it proportional or something
+        tsv="results/B04_chr_mean_cov.tsv"
     localrule: True
     conda: "../envs/sda2.main.yml"
     log: "logs/B04_CalcMeanChrPerChrom.log"
@@ -91,7 +86,7 @@ rule B04_CalcMeanDepthPerChrom:
             awk 'BEGIN \
                     {{OFS="\t"; \
                     chr=""; depth_sum=0; count=0; chrDepth=0; \
-                    print "chr","mean_depth","length"}} \
+                    print "chr","depth_in_bp","length"}} \
                 (NR==1) \
                     {{chr=$1}} \
                 (chr!=$1) \
@@ -102,13 +97,40 @@ rule B04_CalcMeanDepthPerChrom:
                     {{depth_sum+=$4; count++}} \
                 END \
                     {{print chr,chrDepth,count*100}}' > {output.tsv}
+    }} 2>> {log}
+    """
 
-        cat {output.tsv} | \
-            tail -n+2 | \
-            awk -v minLen={params.min_sex_chr_len} -v meanCov=$(cat {input.mean}) -v depthMargin={params.depth_margin} \
-                'BEGIN {{OFS="\\t"}} \
-                ($3>=minLen && $2<meanCov/2+depthMargin && $2>meanCov/2-depthMargin) \
-                    {{print $1}}' 1> {output.sexChrs}
+rule B05_IdentifyHaploidChrs:
+    input:
+        tsv="results/B04_chr_mean_cov.tsv",
+        mean="results/B03_asm_mean_cov.txt"
+    output:
+        hapChrs="results/B05_haploid_chrs.txt"
+    params:
+        autodetect_haploid_chrs_flag=config["flag_autodetect_haploid_chrs"],
+        min_sex_chr_len=10000000, # =10Mb
+        depth_margin=10, # as percentage of normalized depth
+        hapChrs=expand("{base}",base=config["haploid_chrs"])
+    localrule: True
+    conda: "../envs/sda2.main.yml"
+    log: "logs/B05_IdentifyHaploidChrs.log"
+    shell:"""
+    {{
+        echo "##### B05_IdentifyHaploidChrs" > {log}
+        if [ {params.autodetect_haploid_chrs_flag} = "True" ]
+        then
+            echo "### Autodetecting haploid chromosomes" >> {log}
+            cat {input.tsv} | \
+                tail -n+2 | \
+                awk -v minLen={params.min_sex_chr_len} -v meanCov=$(cat {input.mean}) -v depthMargin={params.depth_margin} \
+                    'BEGIN {{OFS="\\t"}} \
+                    ($3>=minLen && $2/meanCov*100<50+depthMargin && $2/meanCov*100>50-depthMargin) \
+                        {{print $1}}' 1> {output.hapChrs}
+        else
+            echo "### Using supplied haploid chromosomes" >> {log}
+            echo "# If no haploid chromosomes were supplied, all chromosomes assumed to be diploid."
+            echo {params.hapChrs} | tr ' ' '\n' 1> {output.hapChrs}
+        fi
     }} 2>> {log}
     """
     
