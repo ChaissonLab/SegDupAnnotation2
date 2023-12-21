@@ -1,16 +1,13 @@
 # Flow of this smk file:
 # - E01 map resolved originals to asm (out: paf)
-# - E02 Needleman Wunch alignment of copy hits to original (calc matches/mismatches/etc)
+# - E02 Needleman Wunch alignment of copy hits to original (calc cigar/matches/mismatches/etc)
 # - E02 calculate resolved copy identity/accuracy
 # - E03 filter by identity/accuracy
 # - E04 Annotate Original and sort by gene then by hit loc
 # - E05 Filter by Original's hit length margin
-# - E06 identify exon lengths
+# - E06 locate exons
 # - E07 Overlapping Nework Filter (to consolidate overlapping genes)
 # - E08 paf to bed
-
-# - E09 (Disable E07 and D06 when using.) Filter isoforms with >10% overlap.
-# - E10 Take list of overlapping genes condensed by E09, pick a consensus gene label and relabel all isoforms in a given community with that label.
 
 
 rule E01_GetResolvedCopiesPaf:
@@ -227,7 +224,7 @@ rule E06_LocateExons:
     }} 2>> {log}
     """
 
-rule E07_ConsolidateOverlappingGenes:
+rule E07_GroupOverlappingGenes:
     input:
         pafxe="results/E06_mapped_resolved_originals_wExons.pafxe"
     output:
@@ -240,11 +237,11 @@ rule E07_ConsolidateOverlappingGenes:
         workflowDir=workflow.basedir
     localrule: True
     conda: "../envs/sda2.main.yml"
-    log: "logs/E07_ConsolidateOverlappingGenes.log"
-    benchmark: "benchmark/E07_ConsolidateOverlappingGenes.tsv"
+    log: "logs/E07_GroupOverlappingGenes.log"
+    benchmark: "benchmark/E07_GroupOverlappingGenes.tsv"
     shell:"""
     {{
-        echo "##### E07_ConsolidateOverlappingGenes" > {log}
+        echo "##### E07_GroupOverlappingGenes" > {log}
         if [ {params.allowOverlappingGenes} = "True" ]
         then
             echo "### Do not remove overlapping genes: create symlink instead." >> {log}
@@ -307,161 +304,3 @@ rule E08_FinalResolvedCopiesBed:
                 print $6,$8,$9,$1,int($19*1000),$5,$8,$9,"0,255,0",length(exonSizes),$22,$23}}' 1> {output.bed12}
     }} 2>> {log}
     """
-
-
-# E07 and E08 moved to before exon filter
-# rule E07_AnnotateOriginal:
-#     input:
-#         bed="results/E08_mapped_resolved_originals_filtered.bed"
-#     output:
-#         bedAn="results/E07_mapped_resolved_originals_filtered_ogAnnotated.bed"
-#     params:
-#         marginToCallOriginal=100
-#     localrule: True
-#     conda: "../envs/sda2.main.yml"
-#     log: "logs/E07_AnnotateOriginal.log"
-#     shell:"""
-#     {{
-#         echo "##### E07_AnnotateOriginal" > {log}
-#         cat {input.bed} | \
-#             tr '/' '\\t' | \
-#             awk -v margin={params.marginToCallOriginal} ' \
-#                 function abs(v) {{v += 0; return v < 0 ? -v : v}} \
-#                 BEGIN \
-#                     {{OFS="\\t"}} \
-#                 {{split($5,hit,":"); \
-#                 split(hit[2],hitLocs,"-"); \
-#                 og_chr=$1; og_start=$2; og_end=$3; \
-#                 hit_chr=hit[1]; hit_start=hitLocs[1]; hit_end=hitLocs[2]; \
-#                 if (og_chr==hit_chr && abs(og_start-hit_start)<margin && abs(og_end-hit_end)<margin) \
-#                     {{type="Original"}} \
-#                 else \
-#                     {{type="Copy"}} \
-#                 print $1,$2,$3,$4,hit_chr,hit_start,hit_end,$6,$7,$8,type}}' | \
-#                 sort -k1,1 -k2,2n -k3,3n -k4,4 1> {output.bedAn}
-#         # Out format: chr,start,end,gene,original_chr,original_start_original_end,strand,p_identity,p_accuracy,copy # sorted by chrom, start, end, then gene
-#     }} 2>> {log}
-#     """
-
-# # Remove copies that deviate from its original copy's length by 0.1 of the original copy's length.
-# rule E08_FiltByOriginalLengthMargin:
-#     input:
-#         bed="results/E07_mapped_resolved_originals_filtered_ogAnnotated.bed"
-#     output:
-#         filt="results/E08_resolved_copies.bed"
-#     params:
-#         maxLengthMargin=config["max_length_margin"]
-#     localrule: True
-#     conda: "../envs/sda2.main.yml"
-#     log: "logs/E08_FiltByOriginalLengthMargin.log"
-#     shell:"""
-#     {{
-#         echo "##### E08_FiltByOriginalLengthMargin" > {log}
-#         cat {input.bed} | \
-#             awk -v maxLengthMargin={params.maxLengthMargin} ' \
-#                 BEGIN \
-#                     {{OFS="\\t"; \
-#                     highMarg=1+maxLengthMargin; \
-#                     lowMarg=1-maxLengthMargin}} \
-#                 (($3-$2)<highMarg*($7-$6) && ($3-$2)>lowMarg*($7-$6)) \
-#                     {{print $0}}' | \
-#                 sort -k1,1 -k2,2n -k3,3n -k4,4 1> {output.filt}
-#         # Out format: chr,start,end,gene,original_chr,original_start_original_end,strand,p_identity,p_accuracy,copy # sorted by chrom, start, end, then gene
-#     }} 2>> {log}
-#     """
-
-
-
-
-# rule E09_SelectDupsOneIsoform: # Basically taken straight from the original SegDupAnnotation TODO
-#     input:
-#         bed="results/E08_resolved_copies_almost.bed"
-#     output:
-#         filt="results/E09_resolved_copies_geneLabelsNotGrouped.bed",
-#         g_names=temp("results/E09_uniq_gene_names.txt"),
-#         filt_coms=temp("results/E09_resolved_copies_with_communities.tsv"),
-#         coms=temp("results/E09_communities.tsv")
-#     params:
-#         #allowOverlappingGenes=config["flag_allow_overlapping_genes"],
-#         workflowDir=workflow.basedir
-#     resources:
-#         mem_mb=cluster_mem_mb_medium,
-#         cpus_per_task=cluster_cpus_per_task_large,
-#         runtime=config["cluster_runtime_short"],
-#         tmpdir=tmpDir
-#     retries: 2
-#     conda: "../envs/sda2.main.yml"
-#     log: "logs/E09_SelectDupsOneIsoform.log"
-#     benchmark: "benchmark/E09_SelectDupsOneIsoform.tsv"
-#     shell:"""
-#     {{
-#         echo "##### E09_SelectDupsOneIsoform - TODO TEMP SOLUTION" > {log}
-#         # Create Gene Names List
-#         cat {input.bed} | cut -f1 -d"|" | sort | uniq > {output.g_names}
-
-#         # Merge Genes with same prefix
-#         mergeGenes () {{ # input geneName
-#             grep -F "$@|" {input.bed} | \
-#                 bedtools sort | \
-#                 bedtools merge -c 4,5,6,7,8,9,10,11,4,5,6,7,8,9,10,11 -o first,first,first,first,first,mean,mean,first,collapse,collapse,collapse,collapse,collapse,collapse,collapse,collapse | \
-#                 awk 'BEGIN {{OFS="\\t"}} \
-#                     {{split($19,copyList,","); \
-#                     origFound=0; \
-#                     for (i in copyList) \
-#                         {{if (copyList[i] == "Original") \
-#                             {{origFound=1}} }} \
-#                     if (origFound == 1) \
-#                         {{print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,"Original",$12}} \
-#                     else \
-#                         {{print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,"Copy",$12}} }}'
-#         }}
-
-#         export -f mergeGenes
-
-#         cat {output.g_names} | \
-#             xargs -P {resources.cpus_per_task} -I % sh -c ' \
-#                 mergeGenes "$@" ' _ % | \
-#             bedtools sort | \
-#             {params.workflowDir}/scripts/E09_RemoveAnyOverlappingGenes.py | \
-#             sort -k1,1 -k2,2n -k3,3n -k4,4 > {output.filt_coms}
-
-#         cat {output.filt_coms} | cut -f1-11 > {output.filt}
-
-#         cat {output.filt_coms} | cut -f4,12 > {output.coms}
-
-#     }} 2>> {log}
-#     """
-
-#         # cat {output.g_names} | \
-#         #     xargs -P 64 -I % sh -c 'grep -F "^%|" {input.bed} | bedtools sort | bedtools merge -c 1,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20 -o first,collapse,collapse,collapse,collapse,collapse,collapse,collapse,collapse,collapse,collapse,collapse,collapse,collapse,collapse,collapse,collapse' | \
-
-
-#             #     cat {output.g_names} | \
-#             # xargs -P {resources.cpus_per_task} -I % sh -c ' \
-#             #     mergeGenes "$@" ' _ % | \
-#             # #sort -k4,4 -k5,5 -k6,6n -k7,7n -k1,1 -k2,2n | \
-#             # #bedtools groupby -g 1-7 -c 4,5,6,7 -o first,first,first,first -full | \
-#             # #sort -k4,4 -k5,5 -k6,6n -k7,7n -k1,1 -k2,2n | \
-#             # bedtools sort | \
-#             # {params.workflowDir}/scripts/E09_RemoveAnyOverlappingGenes.py > {output.filt}
-
-# rule E10_PickConsensusLabel:
-#     input:
-#         bed="results/E09_resolved_copies_geneLabelsNotGrouped.bed",
-#         coms="results/E09_communities.tsv"
-#     output:
-#         out_bed="results/E10_resolved_copies.bed",
-#         out_coms="results/E10_rep_communities.tsv"
-#     #localrule: True
-#     params:
-#         workflowDir=workflow.basedir
-#     localrule: True
-#     conda: "../envs/sda2.main.yml"
-#     log: "logs/E10_PickConsensusLabel.log"
-#     benchmark: "benchmark/E10_PickConsensusLabel.tsv"
-#     shell:"""
-#     {{
-#         echo "##### E10_PickConsensusLabel" > {log}
-#         {params.workflowDir}/scripts/E10_PickConsensusLabel.py {input.coms} {output.out_coms} {input.bed} {output.out_bed}
-#     }} 2>> {log}
-#     """

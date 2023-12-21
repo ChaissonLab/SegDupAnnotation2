@@ -28,7 +28,7 @@ rule A02_faiIndexAsm:
         runtime=config["cluster_runtime_short"]
     conda: "../envs/sda2.main.yml"
     log: "logs/A02_indexAsm.log"
-    benchmark: "benchmark/A02_indexAsm.tsv" # TODO Remove all benchmark lines
+    benchmark: "benchmark/A02_indexAsm.tsv"
     shell:"""
         echo "##### A02_indexAsm" > {log}
         samtools faidx {input.asm} --fai-idx {output.fai} 2>> {log}

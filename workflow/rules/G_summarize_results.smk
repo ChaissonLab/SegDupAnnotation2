@@ -1,8 +1,9 @@
 # Flow of this smk file:
 # - G01 Add header to dup results
-# -     Get counts tables
-# -     Calc summary stats
-# -     Make figs
+# - G02 List every duplication (removing originals)
+# - G03 Compile summary table
+# - G04 Calc summary stats
+# - G05 Make figs
 
 rule G01_AddHeader:
     input:
@@ -69,7 +70,7 @@ rule G03_PerGeneCounts:
         dups="results/G01_dups.bed",
         mean="results/B03_asm_mean_cov.txt"
     output:
-        genes="results/G03_per_gene_counts.bed"
+        genes="results/G03_per_gene_counts.tsv"
     localrule: True
     conda: "../envs/sda2.main.yml"
     log: "logs/G03_PerGeneCounts.log"

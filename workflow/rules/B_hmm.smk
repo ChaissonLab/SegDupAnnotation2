@@ -111,20 +111,4 @@ rule B04_CalcMeanDepthPerChrom:
                     {{print $1}}' 1> {output.sexChrs}
     }} 2>> {log}
     """
-
-# TODO Delete below, DO NOT USE
-# rule B03_CombineCNRanges:
-#     input:
-#        bed="results/B02_copy_number.bed.gz"
-#     output:
-#        comb="results/B03_hmm_copy_number.bed.gz",
-#        test=touch("B.done")
-#     localrule: True
-#     log: "logs/B03_CombineCNRanges.log"
-#     benchmark: "benchmark/B03_CombineCNRanges.tsv"
-#     shell:"""
-#         echo "##### B03_CombineCNRanges" > {log}
-#         zcat {input.bed} | \
-#         bedtools merge -i /dev/stdin -c 4,4,4 -o min,max,mean | \
-#             gzip -c 1> {output.comb} 2>> {log} # really bad method should be a weighted mean!!
-#    """
+    

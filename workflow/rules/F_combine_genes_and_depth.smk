@@ -1,14 +1,15 @@
 # Flow of this smk file:
-# - F01 Calculate weighted depth over gene w/o hmm (rule GetGeneCoverage)
+# - F01 Calculate weighted depth over gene w/o hmm
 # - F02 Label Gene Copy Nums
 # - F03 Calculate depth over gene given hmm
-# - F04 Filter depth 0.05
-# - F05 Filter by copy number or collapse presence: (or at least label these)
+# - F04 Filter by min_depth (default: 0.05)
+# - F05 Filter by copy number or collapse presence:
 #          - autosomal > 2 copies
 #          - sex chr > 1 copy
+#          - autosomes + sex chr > 1 copy
 #          - resolved duplication > 1 copy
-#          -> combine with rule MappedSamIdentityDups
-# -     Combine isoforms based on gene name (like combine all VDACs if overlapping like SelectDupsOneIsoform - in addition to E05...)
+# - F06 Group Isoforms that have any overlap
+# - F07 Group Isoforms by label created in E07
 
 rule F01_GetGeneCoverage: # naive depths
     input:
@@ -85,7 +86,6 @@ rule F03_GetGeneHmmCoverage: # hmm vcf depths
                 {{if ($21==".") \
                     {{$21=0}} \
                 print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$21}}' 1> {output.bed}
-        #original rule AddDepthCopyNumber then has bedtools groupby -g 1-4 -c 19 -o max (then cuts and pastes) TODO Delete this line - for reference to original method only
     }} 2>> {log}
     """
 
@@ -149,17 +149,17 @@ rule F05_FindDups:
     }} 2>> {log}
     """
 
-rule F06_GroupIsoformsByNonOverlapping:
+rule F06_GroupIsoformsThatOverlapping:
     input:
         bed="results/F05_dups_allFams.bed"
     output:
         tsv="results/F06_isoforms_grouped_by_any_overlap.tsv"
     localrule: True
     conda: "../envs/sda2.main.yml"
-    log: "logs/F06_GroupIsoformsByNonOverlapping:.log"
+    log: "logs/F06_GroupIsoformsThatOverlapping.log"
     shell:"""
     {{
-        echo "##### F06_GroupIsoformsByNonOverlapping:" > {log}
+        echo "##### F06_GroupIsoformsThatOverlapping" > {log}
         cat {input.bed} | \
             sort -k1,1 -k2,2n -k3,3n | \
             awk 'BEGIN {{OFS="\t"; chrm=""; groupEnd=0; isos=""; isos_c=""}} \
