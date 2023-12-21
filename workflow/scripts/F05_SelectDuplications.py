@@ -6,8 +6,8 @@
 # 06/08/23
 
 # Purpose: Pick out genes with resolved or collapsed duplications 
-# (with copy num greater than 2 for chroms unless input as sex chromosome.)
-# Input: resolved copies bed file path, list of sex chroms preceded by '-s' flag
+# (with copy num greater than 2 for chroms unless input as haploid/sex chromosome.)
+# Input: resolved copies bed file path. Haploid chromosomes may also be specified.
 # Output: Filtered input.
 
 import sys
@@ -16,7 +16,7 @@ import argparse
 # Parse Input
 parser = argparse.ArgumentParser(prog='F05_SelectDuplications.py',
                                  description="Pick out genes with resolved or collapsed duplications.")
-parser.add_argument("bed_filepath", help="Bed file with resolved copies and copy numbers. Must be sorted.") # TODO Define sort
+parser.add_argument("bed_filepath", help="Bed file with resolved copies and copy numbers. Must be pre-sorted by gene_name in column 4.")
 parser.add_argument('-s','--sex_chrs_list', nargs='+', help="Space separated haploid/sex chromosomes list.")
 parser.add_argument('--sex_chrs_list_filepath',help="Path of line separated haploid/sex chromosomes list. Supderseded by -s/--sex_chrs_list flag.")
 parser.add_argument('--use_vcf_depth', action='store_true')
@@ -52,7 +52,7 @@ EXPECTED_DIPLOID_CN=2
 
 # Create set for Sex Chr Lookup
 if (args.sex_chrs_list):
-    s=set(args.sex_chrs_list) # look up using "chr in s" TODO
+    s=set(args.sex_chrs_list)
 elif (args.sex_chrs_list_filepath):
     sexChrFile=open(args.sex_chrs_list_filepath)
     s=set()
@@ -61,7 +61,6 @@ elif (args.sex_chrs_list_filepath):
     sexChrFile.close()
 else:
     s=set()
-print(str(s),file=sys.stderr) # TODO DELETE ME Testing only
 
 # Helper Function to print collapsed or multicopy genes
 # Input non-empty 2D array of copies of a gene
