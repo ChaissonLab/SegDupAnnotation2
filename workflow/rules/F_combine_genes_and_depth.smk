@@ -149,7 +149,8 @@ rule F06_GroupIsoformsThatOverlap:
         bed="results/F05_dups_allFams.bed"
     output:
         tsv=temp("results/F06_isoforms_groupedByAnyOverlap_initial.tsv"),
-        coms="results/F06_isoform_communities_groupedByAnyOverlap.txt"
+        coms="results/F06_isoform_communities_groupedByAnyOverlap.txt",
+        bed_filt="results/F06_dups_groupedByAnyOverlap.bed"
     params:
         workflowDir=workflow.basedir
     localrule: True
@@ -174,7 +175,8 @@ rule F06_GroupIsoformsThatOverlap:
             sed 's/,\\t/\\t/g' | \
             sed 's/,$/$/g' > {output.tsv}
 
-        {params.workflowDir}/scripts/F06_mergeIsoFamsAndPickConsensus.py {output.tsv} > {output.coms}        
+        {params.workflowDir}/scripts/F06_mergeIsoFamsAndPickConsensus.py {output.tsv} {output.coms} {input.bed} \
+            cut -f1-11,13-18 > {output.bed_filt}
     }} 2>> {log}
     """
 

@@ -230,7 +230,7 @@ rule E07_GroupOverlappingGenes:
     output:
         marked="results/E07_mapped_resolved_originals_annotated_network.pafxe",
         filt="results/E07_mapped_resolved_originals_filtered_network.pafxe",
-        coms="results/E07_isoform_communities.tsv"
+        coms="results/E07_isoform_communities_groupedByExonOverlap.tsv"
     params:
         allowOverlappingGenes=config["flag_allow_overlapping_genes"],
         uncharacterized_prefix=config["uncharacterized_gene_name_prefix"],
