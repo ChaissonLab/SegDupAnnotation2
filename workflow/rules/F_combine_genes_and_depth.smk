@@ -144,29 +144,37 @@ rule F05_FindDups:
     }} 2>> {log}
     """
 
-rule F06_GroupIsoformsThatOverlapping:
+rule F06_GroupIsoformsThatOverlap:
     input:
         bed="results/F05_dups_allFams.bed"
     output:
-        tsv="results/F06_isoforms_grouped_by_any_overlap.tsv"
+        tsv=temp("results/F06_isoforms_groupedByAnyOverlap_initial.tsv"),
+        coms="results/F06_isoform_communities_groupedByAnyOverlap.txt"
+    params:
+        workflowDir=workflow.basedir
     localrule: True
     conda: "../envs/sda2.main.yml"
-    log: "logs/F06_GroupIsoformsThatOverlapping.log"
+    log: "logs/F06_GroupIsoformsThatOverlap.log"
     shell:"""
     {{
-        echo "##### F06_GroupIsoformsThatOverlapping" > {log}
+        echo "##### F06_GroupIsoformsThatOverlap" > {log}
         cat {input.bed} | \
             sort -k1,1 -k2,2n -k3,3n | \
-            awk 'BEGIN {{OFS="\t"; chrm=""; groupEnd=0; isos=""; isos_c=""}} \
+            awk 'BEGIN {{OFS="\\t"; chrm=""; groupEnd=0; isos=""; isos_c=""}} \
                 (NR==1) \
                     {{chrm=$1; groupEnd=$3}} \
                 ($1!=chrm || $2>groupEnd) \
                     {{print isos,isos_c; \
                     chrm=$1; groupEnd=$3; isos=""; isos_c=""}} \
                 {{isos=isos $4","; isos_c=isos_c $4"/"$1":"$2"-"$3","; \
-                if ($3>groupEnd) {{groupEnd=$3}}}} \
+                if ($3>groupEnd) \
+                    {{groupEnd=$3}}}} \
                 END \
-                    {{print isos,isos_c}}' > {output.tsv} # TODO combine duplicates like last part of NetworkFilter
+                    {{print isos,isos_c}}' | \
+            sed 's/,\\t/\\t/g' | \
+            sed 's/,$/$/g' > {output.tsv}
+
+        {params.workflowDir}/scripts/F06_mergeIsoFamsAndPickConsensus.py {output.tsv} > {output.coms}        
     }} 2>> {log}
     """
 

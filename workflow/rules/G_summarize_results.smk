@@ -9,8 +9,8 @@ rule G01_AddHeader:
     input:
         dups="results/F07_dups.bed"
     output:
-        bed="results/G01_dups.bed",
-        bed12="results/G01_dups.igv.bed"
+        bed="results/G01_dups_exonOverlap.bed",
+        bed12="results/G01_dups_exonOverlap.igv.bed"
     localrule: True
     conda: "../envs/sda2.main.yml"
     log: "logs/G01_AddHeader.log"
@@ -40,7 +40,7 @@ rule G01_AddHeader:
 # first copy removed - so it only notes high quality copies.)
 rule G02_GeneCountFact:
     input:
-        dups="results/G01_dups.bed"
+        dups="results/G01_dups_exonOverlap.bed"
     output:
         fact="results/G02_dups_fact.bed"
     localrule: True
@@ -67,7 +67,7 @@ rule G02_GeneCountFact:
 
 rule G03_PerGeneCounts:
     input:
-        dups="results/G01_dups.bed",
+        dups="results/G01_dups_exonOverlap.bed",
         mean="results/B03_asm_mean_cov.txt"
     output:
         genes="results/G03_per_gene_counts.tsv"
@@ -160,7 +160,7 @@ Total_collapsed_bases\\t$collapsedBasesTotal" > {output.summary}
 
 rule G05_SummaryFigs:
     input:
-        dups="results/G01_dups.bed",
+        dups="results/G01_dups_exonOverlap.bed",
         mean="results/B03_asm_mean_cov.txt",
     output:
         comboTmp=temp("results/G05_dups.tsv"),
