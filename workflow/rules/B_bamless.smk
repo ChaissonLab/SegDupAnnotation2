@@ -5,9 +5,9 @@ rule B00_GenerateFilesWithoutUsingBAMs:
     output:
         warning="WARNING_NO_REAL_BAMS_USED.txt",
         cov="results/B01_hmm/B01_cov_bins.bed.gz",
-        vcfDups="results/B02_copy_number.bed.gz", # G04
-        mean="results/B03_asm_mean_cov.txt", # F02, G04
-        hapChrs="results/B05_haploid_chrs.txt", # F05
+        vcfDups="results/B02_copy_number.bed.gz",
+        mean="results/B03_asm_mean_cov.txt",
+        hapChrs="results/B05_haploid_chrs.txt"
     params:
         autodetect_haploid_chrs_flag=config["flag_autodetect_haploid_chrs"],
         hapChrs=expand("{base}",base=config["haploid_chrs"])
@@ -31,6 +31,7 @@ rule B00_GenerateFilesWithoutUsingBAMs:
 
         echo "### Generate B01_cov_bins.bed.gz" >> {log}
         cat {input.fai} | \
+            sort -k1,1 | \
             awk 'BEGIN {{OFS="\\t"}} \
                 {{for (i=0; i+100 <= $2; i+=100) \
                     {{print $1,i,i+100,100;}} }}' | \
@@ -40,7 +41,7 @@ rule B00_GenerateFilesWithoutUsingBAMs:
         echo "### Generate B02_copy_number.bed.gz" >> {log}
         cat {input.fai} | \
             awk 'BEGIN {{OFS="\\t"}} \
-                {{print $1,0,$2,1,100}}' | \
+                {{print $1,1,$2,1,100}}' | \
             bgzip -c 1> {output.vcfDups}
             # Out format: chr,start,end,copy_num,read_depth
 
