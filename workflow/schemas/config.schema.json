@@ -14,12 +14,13 @@
             "items": {
                 "type": "string"
             },
-            "minItems": 1,
+            "minItems": 0,
             "uniqueItems": true,
             "examples": [ [
                 "/scratch1/krabbani/data/raw_bTaeGut2/m54306U_210519_154448.hifi_reads.bam",
                 "/scratch1/krabbani/data/raw_bTaeGut2/m54306U_210521_004211.hifi_reads.bam"
-            ] ]
+            ] ],
+            "default": []
         },
         "asm": {
             "description": "File path to assembly of this species/individual's genome in fasta format. If using haplotype-aware mode, place haplotype 1 here.",
@@ -213,7 +214,6 @@
     },
     "required": [
         "species",
-        "reads_bam",
         "asm",
         "genemodel",
         "temp"
