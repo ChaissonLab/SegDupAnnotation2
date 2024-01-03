@@ -232,7 +232,6 @@ rule E07_GroupIsoformsByExonOverlap:
         filt="results/E07_mapped_resolved_originals_filtered_network.pafxe",
         coms="results/E07_isoform_communities_groupedByExonOverlap.tsv"
     params:
-        allowOverlappingGenes=config["flag_allow_overlapping_genes"],
         uncharacterized_prefix=config["uncharacterized_gene_name_prefix"],
         workflowDir=workflow.basedir
     localrule: True
@@ -242,29 +241,23 @@ rule E07_GroupIsoformsByExonOverlap:
     shell:"""
     {{
         echo "##### E07_GroupIsoformsByExonOverlap" > {log}
-        if [ {params.allowOverlappingGenes} = "True" ]
+        echo "### Identify Prefix of Uncharacterized Genes" >> {log}
+        prefix="{params.uncharacterized_prefix}"
+        prefix_len=${{#prefix}}
+        if [[ $prefix_len -gt 0 ]]
         then
-            echo "### Do not remove overlapping genes: create symlink instead." >> {log}
-            ln -s {params.workflowDir}/../{input.pafxe} {params.workflowDir}/../{output.filt}
+            echo "# Deprioritizing of gene names with prefix \'{params.uncharacterized_prefix}\' enabled when picking a representative gene name within a community as recognized bythe exon network filter." >> {log}
+            unchar_filt_flag="-u {params.uncharacterized_prefix}"
         else
-            echo "## Identify Prefix of Uncharacterized Genes" >> {log}
-            prefix="{params.uncharacterized_prefix}"
-            prefix_len=${{#prefix}}
-            if [[ $prefix_len -gt 0 ]]
-            then
-                echo "# Deprioritizing of gene names with prefix \'{params.uncharacterized_prefix}\' enabled when picking a representative gene name within a community as recognized bythe exon network filter." >> {log}
-                unchar_filt_flag="-u {params.uncharacterized_prefix}"
-            else
-                echo "# Deprioritization of uncharacterized genes when picking a representative gene name is disabled." >> {log}
-                unchar_filt_flag=""
-            fi
-
-            echo "### Annotate non-representative overlapping genes" >> {log}
-            {params.workflowDir}/scripts/E07_NetworkFilter.py {input.pafxe} {output.coms} "$unchar_filt_flag" 1> {output.marked}
-            cat {output.marked} | \
-                awk 'BEGIN {{OFS="\\t"}} ($24=="yes") {{print $0}}' | \
-                cut -f1-23 1> {output.filt}
+            echo "# Deprioritization of uncharacterized genes when picking a representative gene name is disabled." >> {log}
+            unchar_filt_flag=""
         fi
+
+        echo "### Annotate non-representative overlapping genes" >> {log}
+        {params.workflowDir}/scripts/E07_NetworkFilter.py {input.pafxe} {output.coms} "$unchar_filt_flag" 1> {output.marked}
+        cat {output.marked} | \
+            awk 'BEGIN {{OFS="\\t"}} ($24=="yes") {{print $0}}' | \
+            cut -f1-23 1> {output.filt}
     }} 2>> {log}
     """
 

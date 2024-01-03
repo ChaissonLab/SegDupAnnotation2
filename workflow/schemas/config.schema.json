@@ -116,12 +116,6 @@
             "type": "string",
             "examples": ["ENSG", "LOC"]
         },
-        "flag_allow_overlapping_genes": {
-            "description": "When false group overlapping genes using network based approach.",
-            "type": "boolean",
-            "examples": [ true, false],
-            "default": true
-        },
         "flag_filtered": {
             "description": "Retain and calculate depth for all genes even those that don't meet filter minimums.",
             "type": "boolean",
@@ -193,11 +187,6 @@
             "type": "integer",
             "examples": [ 60, 240, 1440 ],
             "default": 240
-        },
-        "cluster_exec": {
-            "description": "Generic SLURM paramaters for running rules that are resource light or resource intense. Intended to be paired with snakemake's --cluster command line parameter.",
-            "type": "string",
-            "examples": [ "sbatch -c {resources.cpus_per_task} --mem={resources.mem_mb}MB --time={resources.runtime} --partition=qcb --account=mchaisso_100 --output=slurm-logs/slurm-%j.out" ]
         },
         "override_mem": {
             "description": "Override the memory available in MB otherwise defined by the cluster_mem_mb_<size> parameters in MB. If set to -1, the cluster_mem_mb_<X> paramters will not be overwritten.",
