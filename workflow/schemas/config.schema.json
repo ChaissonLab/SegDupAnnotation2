@@ -9,7 +9,7 @@
             "type": "string"
         },
         "reads_bam": {
-            "description": "List of paths to read files in bam format.",
+            "description": "List of paths to read files in bam format. (If none provided, workflow will run in 'bamless' mode and assume a read depth of 100 bp across the assembly. Output files will reflect this depth, and thus results may be confusing. For this reason it is not advised to use this workflow without pacbio read bams.)",
             "type": "array",
             "items": {
                 "type": "string"
