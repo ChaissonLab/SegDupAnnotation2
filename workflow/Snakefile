@@ -71,13 +71,14 @@ include: "rules/F_combine_genes_and_depth.smk"
 include: "rules/G_summarize_results.smk"
 
 ### Target Rules
+OUTPUT_SUFFIXES=["_allHits","_groupedByExonOverlap","_groupedByAnyOverlap"]
 rule all:
     input:
-        "results/G01_dups_exonOverlap.bed",
-        "results/G02_dups_fact.bed",
-        "results/G03_per_gene_counts.tsv",
-        "results/G04_summary_stats.tsv" #,
-        #"results/G05_depthPlot_merged.pdf"
+        expand("results/G01_dups{base}.bed", base=OUTPUT_SUFFIXES),
+        expand("results/G02_dups{base}_fact.bed", base=OUTPUT_SUFFIXES),
+        expand("results/G03_per_gene_counts{base}.tsv", base=OUTPUT_SUFFIXES),
+        expand("results/G04_summary_stats{base}.tsv", base=OUTPUT_SUFFIXES) #,
+        # "results/G05_depthPlot_merged.pdf"
     localrule: True
 
 onstart:

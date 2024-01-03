@@ -29,8 +29,8 @@ rule F01_GetGeneCoverage: # naive depths
         echo "##### F01_GetGeneCoverage" > {log}
         zcat {input.depths} | \
             bedtools intersect -loj -sorted -a {input.genes} -b /dev/stdin | \
-            bedtools groupby -g 1,2,3,4,5,6,7,8,9,10,11,12,13,14 -c 18,18 -o mean,stdev 1> {output.bed}
-        # Out format: chr,start,end,gene,original_chr,original_start,original_end,strand,p_identity,p_accuracy,copy,representative,exons_sizes,exon_starts,depth_by_traditional(non-vcf),depth_by_traditional(non-vcf)-stdDev
+            bedtools groupby -g 1,2,3,4,5,6,7,8,9,10,11,12,13 -c 17,17 -o mean,stdev 1> {output.bed}
+        # Out format: chr,start,end,gene,original_chr,original_start,original_end,strand,p_identity,p_accuracy,copy,exons_sizes,exon_starts,depth_by_traditional(non-vcf),depth_by_traditional(non-vcf)-stdDev
     }} 2>> {log}
     """
 
@@ -57,7 +57,7 @@ rule F02_LabelCopyNums:
                                         {{return i}}}} \
                 BEGIN \
                     {{OFS="\\t"}} \
-                {{print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15/meanCov,$16/meanCov,round($15/meanCov)}}' 1> {output.bed}
+                {{print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14/meanCov,$15/meanCov,round($14/meanCov)}}' 1> {output.bed}
     }} 2>> {log}
     """
 
@@ -83,9 +83,9 @@ rule F03_GetGeneHmmCoverage: # hmm vcf depths
             awk 'BEGIN {{OFS="\\t"}} ($4!=0) {{print}}' 1> {output.hmm_noZero}
         bedtools intersect -loj -a {input.genes} -b {output.hmm_noZero} -f 1 | \
             awk 'BEGIN {{OFS="\\t"}} \
-                {{if ($21==".") \
-                    {{$21=0}} \
-                print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$21}}' 1> {output.bed}
+                {{if ($19==".") \
+                    {{$19=0}} \
+                print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$20}}' 1> {output.bed}
     }} 2>> {log}
     """
 
@@ -107,7 +107,7 @@ rule F04_FilterOutMinDepth:
             awk -v minDepth={params.minDepth} ' \
                 BEGIN \
                     {{OFS="\\t"}} \
-                ($15>minDepth) \
+                ($14>minDepth) \
                     {{print}}' 1> {output.filt}
     }} 2>> {log}
     """
@@ -144,7 +144,7 @@ rule F05_FindDups:
     }} 2>> {log}
     """
 
-rule F06_GroupIsoformsThatOverlap:
+rule F06_GroupIsoformsByAnyOverlap:
     input:
         bed="results/F05_dups_allFams.bed"
     output:
@@ -155,10 +155,10 @@ rule F06_GroupIsoformsThatOverlap:
         workflowDir=workflow.basedir
     localrule: True
     conda: "../envs/sda2.main.yml"
-    log: "logs/F06_GroupIsoformsThatOverlap.log"
+    log: "logs/F06_GroupIsoformsByAnyOverlap.log"
     shell:"""
     {{
-        echo "##### F06_GroupIsoformsThatOverlap" > {log}
+        echo "##### F06_GroupIsoformsByAnyOverlap" > {log}
         cat {input.bed} | \
             sort -k1,1 -k2,2n -k3,3n | \
             awk 'BEGIN {{OFS="\\t"; chrm=""; groupEnd=0; isos=""; isos_c=""}} \
@@ -173,27 +173,39 @@ rule F06_GroupIsoformsThatOverlap:
                 END \
                     {{print isos,isos_c}}' | \
             sed 's/,\\t/\\t/g' | \
-            sed 's/,$/$/g' > {output.tsv}
+            sed 's/,$//g' > {output.tsv}
 
-        {params.workflowDir}/scripts/F06_mergeIsoFamsAndPickConsensus.py {output.tsv} {output.coms} {input.bed} \
-            cut -f1-11,13-18 > {output.bed_filt}
+        {params.workflowDir}/scripts/F06_mergeIsoFamsAndPickConsensus.py {output.tsv} {output.coms} {input.bed} > {output.bed_filt}
     }} 2>> {log}
     """
 
-rule F07_PrintRepresentativesOnly:
+rule F07_PickRepresentativeForIsoformsGroupedByExonOverlap:
     input:
-        bed="results/F05_dups_allFams.bed"
+        bed="results/F05_dups_allFams.bed",
+        iso="results/E07_isoform_communities_groupedByExonOverlap.tsv"
     output:
-        reps="results/F07_dups.bed"
+        iso_simp=temp("results/F07_isoform_communities_groupedByExonOverlap_initial_simplified.tsv"),
+        coms="results/F07_isoform_communities_groupedByExonOverlap.txt",
+        reps="results/F07_dups_groupedByExonOverlap.bed"
+    params:
+        workflowDir=workflow.basedir
     localrule: True
     conda: "../envs/sda2.main.yml"
-    log: "logs/F07_PrintRepresentativesOnly.log"
+    log: "logs/F07_PickRepresentativeForIsoformsGroupedByExonOverlap.log"
     shell:"""
     {{
-        echo "##### F07_PrintRepresentativesOnly" > {log}
-        cat {input.bed} | \
-            awk 'BEGIN {{OFS="\\t"}} ($12=="yes") \
-                {{print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$13,$14,$15,$16,$17,$18}}' 1> {output.reps}
+        echo "##### F07_PickRepresentativeForIsoformsGroupedByExonOverlap" > {log}
+        cat {input.iso} | \
+            tail -n+2 | \
+            cut -f2 | \
+            awk 'BEGIN {{OFS="\\t"}} \
+                {{n=patsplit($1,ogs,"/[^,]*[,]?",isos); \
+                j=isos[0]; \
+                for (i=1; i<n; i++) \
+                    {{j=j "," isos[i]}}; \
+                print j,$1}}' 1> {output.iso_simp}
+
+        {params.workflowDir}/scripts/F06_mergeIsoFamsAndPickConsensus.py {output.iso_simp} {output.coms} {input.bed} 1> {output.reps}
     }} 2>> {log}
     """
 

@@ -5,19 +5,26 @@
 # - G04 Calc summary stats
 # - G05 Make figs
 
-rule G01_AddHeader:
+rule G01_AddHeaders:
     input:
-        dups="results/F07_dups.bed"
+        dups_all="results/F05_dups_allFams.bed",
+        dups_exon="results/F07_dups_groupedByExonOverlap.bed",
+        dups_any="results/F06_dups_groupedByAnyOverlap.bed"
     output:
-        bed="results/G01_dups_exonOverlap.bed",
-        bed12="results/G01_dups_exonOverlap.igv.bed"
+        bed_all   ="results/G01_dups_allHits.bed",
+        bed12_all ="results/G01__dups_allHits.igv.bed",
+        bed_exon  ="results/G01_dups_groupedByExonOverlap.bed",
+        bed12_exon="results/G01__dups_groupedByExonOverlap.igv.bed",
+        bed_any   ="results/G01_dups_groupedByAnyOverlap.bed",
+        bed12_any ="results/G01__dups_groupedByAnyOverlap.igv.bed"
     localrule: True
     conda: "../envs/sda2.main.yml"
-    log: "logs/G01_AddHeader.log"
+    log: "logs/G01_AddHeaders.log"
     shell:"""
     {{
-        echo "##### G01_AddHeader" > {log}
-        cat {input.dups} | \
+        echo "##### G01_AddHeaders" > {log}
+        echo "## Unfiltered File" >> {log}
+        cat {input.dups_all} | \
             sort -k4,4 -k11,11r -k5,5 -k6,6n -k7,7n -k1,1 -k2,2n -k3,3n | \
             awk ' \
                 BEGIN \
@@ -25,13 +32,44 @@ rule G01_AddHeader:
                     print "#chr","start","end","gene","orig_chr","orig_start","orig_end", \
                     "strand","p_identity","p_accuracy","identity", \
                     "depth","depth_stdev","copy_num","depth_by_vcf"}} \
-                {{print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$14,$15,$16,$17}}' 1> {output.bed}
+                {{print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$14,$15,$16,$17}}' 1> {output.bed_all}
 
-        echo "### IGV BED File" >> {log}
-        cat {input.dups} | \
+        cat {input.dups_all} | \
             awk 'BEGIN {{OFS="\\t"}} \
                 {{split($12,exonSizes,","); \
-                print $1,$2,$3,$4,int($9*1000),$8,$2,$3,"255,0,0",length(exonSizes),$12,$13}}' 1> {output.bed12}
+                print $1,$2,$3,$4,int($9*1000),$8,$2,$3,"255,0,0",length(exonSizes),$12,$13}}' 1> {output.bed12_all}
+        
+        echo "## Grouped By Exon Overlap File" >> {log}
+        cat {input.dups_exon} | \
+            sort -k4,4 -k11,11r -k5,5 -k6,6n -k7,7n -k1,1 -k2,2n -k3,3n | \
+            awk ' \
+                BEGIN \
+                    {{OFS="\\t"; \
+                    print "#chr","start","end","gene","orig_chr","orig_start","orig_end", \
+                    "strand","p_identity","p_accuracy","identity", \
+                    "depth","depth_stdev","copy_num","depth_by_vcf"}} \
+                {{print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$14,$15,$16,$17}}' 1> {output.bed_exon}
+
+        cat {input.dups_exon} | \
+            awk 'BEGIN {{OFS="\\t"}} \
+                {{split($12,exonSizes,","); \
+                print $1,$2,$3,$4,int($9*1000),$8,$2,$3,"255,0,0",length(exonSizes),$12,$13}}' 1> {output.bed12_exon}
+        
+        echo "## Grouped By Any Overlap File" >> {log}
+        cat {input.dups_any} | \
+            sort -k4,4 -k11,11r -k5,5 -k6,6n -k7,7n -k1,1 -k2,2n -k3,3n | \
+            awk ' \
+                BEGIN \
+                    {{OFS="\\t"; \
+                    print "#chr","start","end","gene","orig_chr","orig_start","orig_end", \
+                    "strand","p_identity","p_accuracy","identity", \
+                    "depth","depth_stdev","copy_num","depth_by_vcf"}} \
+                {{print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$14,$15,$16,$17}}' 1> {output.bed_any}
+
+        cat {input.dups_any} | \
+            awk 'BEGIN {{OFS="\\t"}} \
+                {{split($12,exonSizes,","); \
+                print $1,$2,$3,$4,int($9*1000),$8,$2,$3,"255,0,0",length(exonSizes),$12,$13}}' 1> {output.bed12_any}
     }} 2>> {log}
     """
 
@@ -40,12 +78,12 @@ rule G01_AddHeader:
 # first copy removed - so it only notes high quality copies.)
 rule G02_GeneCountFact:
     input:
-        dups="results/G01_dups_exonOverlap.bed"
+        dups="results/G01_dups{base}.bed"
     output:
-        fact="results/G02_dups_fact.bed"
+        fact="results/G02_dups{base}_fact.bed"
     localrule: True
     conda: "../envs/sda2.main.yml"
-    log: "logs/G02_GeneCountFact.log"
+    log: "logs/G02_GeneCountFact{base}.log"
     shell:"""
     {{
         echo "##### G02_GeneCountFact" > {log}
@@ -67,13 +105,13 @@ rule G02_GeneCountFact:
 
 rule G03_PerGeneCounts:
     input:
-        dups="results/G01_dups_exonOverlap.bed",
+        dups="results/G01_dups{base}.bed",
         mean="results/B03_asm_mean_cov.txt"
     output:
-        genes="results/G03_per_gene_counts.tsv"
+        genes="results/G03_per_gene_counts{base}.tsv"
     localrule: True
     conda: "../envs/sda2.main.yml"
-    log: "logs/G03_PerGeneCounts.log"
+    log: "logs/G03_PerGeneCounts{base}.log"
     shell:"""
     {{
         echo "##### G03_PerGeneCounts" > {log}
@@ -100,15 +138,15 @@ rule G03_PerGeneCounts:
 
 rule G04_SummaryStats:
     input:
-        fact="results/G02_dups_fact.bed",
+        fact="results/G02_dups{base}_fact.bed",
         mean="results/B03_asm_mean_cov.txt",
         vcfDups="results/B02_copy_number.bed.gz"
     output:
-        summary="results/G04_summary_stats.tsv"
+        summary="results/G04_summary_stats{base}.tsv"
     localrule: True
     conda: "../envs/sda2.main.yml"
-    log: "logs/G04_SummaryStats.log"
-    benchmark: "benchmark/G04_SummaryStats.tsv"
+    log: "logs/G04_SummaryStats{base}.log"
+    benchmark: "benchmark/G04_SummaryStats{base}.tsv"
     shell:"""
     {{
         echo "##### G04_SummaryStats" > {log}
@@ -160,22 +198,22 @@ Total_collapsed_bases\\t$collapsedBasesTotal" > {output.summary}
 
 rule G05_SummaryFigs:
     input:
-        dups="results/G01_dups_exonOverlap.bed",
+        dups="results/G01_dups{base}.bed",
         mean="results/B03_asm_mean_cov.txt",
     output:
-        comboTmp=temp("results/G05_dups.tsv"),
-        resTmp=temp("results/G05_dups_resolved.tsv"),
-        colTmp=temp("results/G05_dups_collapsed.tsv"),
-        plot_combo="results/G05_depthPlot_combo.pdf",
-        plot_res="results/G05_depthPlot_res.pdf",
-        plot_col="results/G05_depthPlot_col.pdf",
-        plot_merged="results/G05_depthPlot_merged.pdf",
+        comboTmp=temp("results/G05_dups{base}.tsv"),
+        resTmp=temp("results/G05_dups{base}_resolved.tsv"),
+        colTmp=temp("results/G05_dups{base}_collapsed.tsv"),
+        plot_combo="results/G05_depthPlot{base}_combo.pdf",
+        plot_res="results/G05_depthPlot{base}_res.pdf",
+        plot_col="results/G05_depthPlot{base}_col.pdf",
+        plot_merged="results/G05_depthPlot{base}_merged.pdf",
     params:
         workflowDir=workflow.basedir
     localrule: True
     conda: "../envs/sda2.r.yml"
-    log: "logs/G05_SummaryFigs.log"
-    benchmark: "benchmark/G05_SummaryFigs.tsv"
+    log: "logs/G05_SummaryFigs{base}.log"
+    benchmark: "benchmark/G05_SummaryFigs{base}.tsv"
     shell:"""
     {{
         echo "##### G05_SummaryFigs" > {log}
@@ -216,3 +254,4 @@ rule G05_SummaryFigs:
         Rscript {params.workflowDir}/scripts/G05_SummaryFigs.R {params.workflowDir} {output.comboTmp} {output.resTmp} {output.colTmp}
     }} 2>> {log}
     """
+    

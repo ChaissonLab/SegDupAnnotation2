@@ -224,7 +224,7 @@ rule E06_LocateExons:
     }} 2>> {log}
     """
 
-rule E07_GroupOverlappingGenes:
+rule E07_GroupIsoformsByExonOverlap:
     input:
         pafxe="results/E06_mapped_resolved_originals_wExons.pafxe"
     output:
@@ -237,11 +237,11 @@ rule E07_GroupOverlappingGenes:
         workflowDir=workflow.basedir
     localrule: True
     conda: "../envs/sda2.main.yml"
-    log: "logs/E07_GroupOverlappingGenes.log"
-    benchmark: "benchmark/E07_GroupOverlappingGenes.tsv"
+    log: "logs/E07_GroupIsoformsByExonOverlap.log"
+    benchmark: "benchmark/E07_GroupIsoformsByExonOverlap.tsv"
     shell:"""
     {{
-        echo "##### E07_GroupOverlappingGenes" > {log}
+        echo "##### E07_GroupIsoformsByExonOverlap" > {log}
         if [ {params.allowOverlappingGenes} = "True" ]
         then
             echo "### Do not remove overlapping genes: create symlink instead." >> {log}
@@ -270,10 +270,10 @@ rule E07_GroupOverlappingGenes:
 
 rule E08_FinalResolvedCopiesBed:
     input:
-        pafx="results/E07_mapped_resolved_originals_filtered_network.pafxe",
-        pafx_all="results/E07_mapped_resolved_originals_annotated_network.pafxe"
+        pafxe="results/E06_mapped_resolved_originals_wExons.pafxe",
+        pafx="results/E07_mapped_resolved_originals_filtered_network.pafxe"
     output:
-        bed="results/E08_resolved_copies.bed",
+        bed="results/E08_resolved_copies.bed", # unfiltered by E07 Network Filter Results
         bed12="results/E08_resolved_copies.igv.bed" # filtered according to E07 Network Filter Results
     localrule: True
     conda: "../envs/sda2.main.yml"
@@ -282,7 +282,7 @@ rule E08_FinalResolvedCopiesBed:
     {{
         echo "##### E08_FinalResolvedCopiesBed" > {log}
 
-        cat {input.pafx_all} | \
+        cat {input.pafxe} | \
             awk 'BEGIN {{OFS="\\t"}} \
                 {{if ($5=="+") \
                     {{strand=0}} \
@@ -292,9 +292,9 @@ rule E08_FinalResolvedCopiesBed:
                 split(gene_name[2],og,":"); \
                 split(og[2],ogLocs,"-"); \
                 og_chr=og[1]; og_start=ogLocs[1]; og_end=ogLocs[2]; \
-            print $6,$8,$9,gene_name[1],og_chr,og_start,og_end,strand,$19,$20,$21,$24,$22,$23}}' | \
+            print $6,$8,$9,gene_name[1],og_chr,og_start,og_end,strand,$19,$20,$21,$22,$23}}' | \
             sort -k1,1 -k2,2n -k3,3n -k4,4 1> {output.bed}
-        # Out format: chr,start,end,gene,original_chr,original_start,original_end,strand,p_identity,p_accuracy,copy,representative,exons_sizes,exon_starts
+        # Out format: chr,start,end,gene,original_chr,original_start,original_end,strand,p_identity,p_accuracy,exons_sizes,exon_starts
         # sorted by chrom, start, end, then gene
 
         echo "### IGV BED File" >> {log}
