@@ -1,11 +1,11 @@
-##### Segmental Duplication Annotation Pipeline for Vertebrate Genomes
+##### Segmental Duplication Annotation Pipeline
 #####
 ##### Keon Rabbani
 ##### krabbani@usc.edu
 ##### Chaisson Lab
 ##### University of Southern California
 
-##### Purpose: Count resolved and collapsed gene duplications in vertebrate species.
+##### Purpose: Count resolved and collapsed gene duplications given an assembly, gene model, and PacBio reads.
 
 ### Import Libraries
 from snakemake.utils import validate
@@ -23,7 +23,6 @@ containerized: "docker://krabbani/segdupannotation2:1.2.s"
 species=config["species"]
 tmpDir=config["temp"]
 bamFiles={f.split("/")[-1]: f for f in config["reads_bam"]}
-catchFilt=config["flag_filtered"] # TODO Unused param
 if config["hap2"] == "":
     hap_aware_mode = False
 else:

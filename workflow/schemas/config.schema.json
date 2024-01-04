@@ -116,12 +116,6 @@
             "type": "string",
             "examples": ["ENSG", "LOC"]
         },
-        "flag_filtered": {
-            "description": "Retain and calculate depth for all genes even those that don't meet filter minimums.",
-            "type": "boolean",
-            "examples": [ true, false],
-            "default": false
-        },
         "cluster_mem_mb_baby": {
             "description": "The memory in MB a cluster node or cpu must provide for a computationally simple job. In practice this parameter is combined with a cluster_cpus_per_task_<size> parameter by some rules to create a SLURM or other cluster job.",
             "type": "integer",
