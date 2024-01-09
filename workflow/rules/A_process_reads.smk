@@ -102,20 +102,17 @@ rule A03_alignReads:
         fi
         echo "Minimap2 -x preset: $mm2_mode" >> {log}
 
+        echo "### Make Tmp Dir" >> {log}
+        tmp_collate_path=`mktemp -d -p {resources.tmpdir} A03.collate.XXXX.tmp`
+        tmp_mm2_path=`mktemp -d -p {resources.tmpdir} A03.mm2.XXXX.tmp`
+        tmp_sort_path=`mktemp -d -p {resources.tmpdir} A03.sort.XXXX.tmp`
+
         if [[ {input.reads} == *".bam" ]]
         then
-            echo "### Make Tmp Dir" >> {log}
-            tmp_collate_path=`mktemp -d -p {resources.tmpdir} A03.collate.XXXX.tmp`
-            tmp_mm2_path=`mktemp -d -p {resources.tmpdir} A03.mm2.XXXX.tmp`
-            tmp_sort_path=`mktemp -d -p {resources.tmpdir} A03.sort.XXXX.tmp`
-            
             echo "### Create fastq files"
             samtools view -h -F 2304 -u -@ "$numAdditionalThreads" {input.reads} | \
                 samtools collate -O -u -@ "$numAdditionalThreads" - "$tmp_collate_path" | \
                 samtools fastq -@ "$numAdditionalThreads" - > {output.fastq}
-            
-            echo "### Delete Tmp Dirs and their Contents" >> {log}
-            rm -rf "$tmp_collate_path" "$tmp_mm2_path" "$tmp_sort_path"
         elif [[ {input.reads} == *".fastq.gz" ]]
         then
             echo "### Unzip fastq" >> {log}
@@ -134,6 +131,9 @@ rule A03_alignReads:
         echo "### Align Reads" >> {log}
         minimap2 {input.mmi} {output.fastq} -a -x "$mm2_mode" -t {resources.cpus_per_task} --split-prefix "$tmp_mm2_path" | \
             samtools sort -T "$tmp_sort_path"/reads -m "$mem_per_cpu"M -@ "$numAdditionalThreads" -o {output.aligned}
+
+        echo "### Delete Tmp Dirs and their Contents" >> {log}
+        rm -rf "$tmp_collate_path" "$tmp_mm2_path" "$tmp_sort_path"
     }} 2>> {log}
     """
 
