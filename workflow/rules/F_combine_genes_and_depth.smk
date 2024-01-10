@@ -9,12 +9,12 @@
 #          - autosomes + sex chr > 1 copy
 #          - resolved duplication > 1 copy
 # - F06 Group Isoforms that have any overlap
-# - F07 Group Isoforms by label created in E07
+# - F07 Group Isoforms by label created in E08
 
 rule F01_GetGeneCoverage: # naive depths
     input:
         depths="results/B01_hmm/B01_cov_bins.bed.gz", # presorted
-        genes="results/E08_resolved_copies.bed" # presorted
+        genes="results/E09_resolved_copies.bed" # presorted
     output:
         bed="results/F01_resolved_copies_cn.bed"
     resources:
@@ -182,7 +182,7 @@ rule F06_GroupIsoformsByAnyOverlap:
 rule F07_PickRepresentativeForIsoformsGroupedByExonOverlap:
     input:
         bed="results/F05_dups_allFams.bed",
-        iso="results/E07_isoform_communities_groupedByExonOverlap.tsv"
+        iso="results/E08_isoform_communities_groupedByExonOverlap.tsv"
     output:
         iso_simp=temp("results/F07_isoform_communities_groupedByExonOverlap_initial_simplified.tsv"),
         coms="results/F07_isoform_communities_groupedByExonOverlap.txt",

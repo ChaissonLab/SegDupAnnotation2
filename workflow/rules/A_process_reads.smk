@@ -1,18 +1,18 @@
 # HAPLOTYPE AWARE MODE DISABLED
 rule A01_linkAsm:
-        input:
-            asm=config["asm"]
-        output:
-            asmlink="results/A01_assembly.fasta"
-        params:
-            workflowDir=workflow.basedir
-        localrule: True
-        conda: "../envs/sda2.main.yml"
-        log: "logs/A01_linkAsm.log"
-        shell:"""
-            echo "##### A01_linkAsm" > {log}
-            ln -s {input.asm} {params.workflowDir}/../{output.asmlink} 2>> {log}
-        """
+    input:
+        asm=config["asm"]
+    output:
+        asmlink="results/A01_assembly.fasta"
+    params:
+        workflowDir=workflow.basedir
+    localrule: True
+    conda: "../envs/sda2.main.yml"
+    log: "logs/A01_linkAsm.log"
+    shell:"""
+        echo "##### A01_linkAsm" > {log}
+        ln -s {input.asm} {params.workflowDir}/../{output.asmlink} 2>> {log}
+    """
 
 rule A02_faiIndexAsm:
     input:

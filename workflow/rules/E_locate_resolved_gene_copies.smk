@@ -1,13 +1,14 @@
 # Flow of this smk file:
 # - E01 map resolved originals to asm (out: paf)
-# - E02 Needleman Wunch alignment of copy hits to original (calc cigar/matches/mismatches/etc)
-# - E02 calculate resolved copy identity/accuracy
-# - E03 filter by identity/accuracy
-# - E04 Annotate Original and sort by gene then by hit loc
-# - E05 Filter by Original's hit length margin
-# - E06 locate exons
-# - E07 Overlapping Nework Filter (to consolidate overlapping genes)
-# - E08 paf to bed
+# - E02 remove hits that intersect with Flagger called regions
+# - E03 Needleman Wunch alignment of copy hits to original (calc cigar/matches/mismatches/etc)
+# - E03 calculate resolved copy identity/accuracy
+# - E04 filter by identity/accuracy
+# - E05 Annotate Original and sort by gene then by hit loc
+# - E06 Filter by Original's hit length margin
+# - E07 locate exons
+# - E08 Overlapping Nework Filter (to consolidate overlapping genes)
+# - E09 paf to bed
 
 
 rule E01_GetResolvedCopiesPaf:
@@ -31,13 +32,43 @@ rule E01_GetResolvedCopiesPaf:
     }} 2>> {log}
     """
 
-rule E02_GetResolvedCopyIdentities:
+rule E02_FilterPafByBed:
+    input:
+        paf="results/E01_resolved_copies.paf"
+    output:
+        filt="results/E02_resolved_copies_filt.paf"
+    params:
+        workflowDir=workflow.basedir,
+        bed=config["bed_for_filtering_results"]
+    localrule: True
+    conda: "../envs/sda2.main.yml"
+    log: "logs/E02_FilterPafByBed.log"
+    benchmark: "benchmark/E02_FilterPafByBed.tsv"
+    shell:"""
+    {{
+        echo "##### E02_FilterPafByBed" > {log}
+        if [[ -f {params.bed} ]]
+        then
+            echo "### Run Filter" >> {log}
+            cat {input.paf} | \
+                awk 'BEGIN {{OFS="\\t"}} {{print $6,$8,$9,$0}}' | \
+                bedtools intersect -v -a stdin -b {params.bed} | \
+                cut --complement -f1-3 1> {output.filt}
+        else
+            echo "### Skip filter and generate symbolic link instead." >> {log}
+            echo "# Bed to filter by not provided."
+            ln -s {input.paf} {params.workflowDir}/../{output.filt}
+        fi
+    }} 2>> {log}
+    """
+
+rule E03_GetResolvedCopyIdentities:
     input:
         paf="results/E01_resolved_copies.paf",
         asm="results/A01_assembly.fasta"
     output:
-        pafc="results/E02_mapped_resolved_originals.pafxc",
-        pafx="results/E02_mapped_resolved_originals.pafx"
+        pafc="results/E03_mapped_resolved_originals.pafxc",
+        pafx="results/E03_mapped_resolved_originals.pafx"
     params:
         workflowDir=workflow.basedir
     resources:
@@ -47,35 +78,35 @@ rule E02_GetResolvedCopyIdentities:
         tmpdir=tmpDir
     retries: 2
     conda: "../envs/sda2.main.yml"
-    log: "logs/E02_GetResolvedCopyIdentities.log"
-    benchmark: "benchmark/E02_GetResolvedCopyIdentities.tsv"
+    log: "logs/E03_GetResolvedCopyIdentities.log"
+    benchmark: "benchmark/E03_GetResolvedCopyIdentities.tsv"
     shell:"""
     {{
-        echo "##### E02_GetResolvedCopyIdentities" > {log}
+        echo "##### E03_GetResolvedCopyIdentities" > {log}
         echo "### Align and calculate hit identities" >> {log}
         cat {input.paf} | xargs -P {resources.cpus_per_task} -I % bash -c ' \
             tmp_dir=`mktemp -d -p {resources.tmpdir} tmp.getIdent.$$.XXXXXX`; \
             echo "$@" | tr "\\t" " " > "$tmp_dir"/line.paf; \
-            {params.workflowDir}/scripts/E02_CalcPafIdentity.py {input.asm} "$tmp_dir" "$tmp_dir"/line.paf 1>> {output.pafc}; \
+            {params.workflowDir}/scripts/E03_CalcPafIdentity.py {input.asm} "$tmp_dir" "$tmp_dir"/line.paf 1>> {output.pafc}; \
             rm -rf "$tmp_dir"; ' _ %
         cat {output.pafc} | cut -f 1-20 1> {output.pafx} # removes cigar string
     }} 2>> {log}
     """
 
-rule E03_FilterLowIdentityPaf:
+rule E04_FilterLowIdentityPaf:
     input:
-        pafx="results/E02_mapped_resolved_originals.pafx"
+        pafx="results/E03_mapped_resolved_originals.pafx"
     output:
-        filt="results/E03_mapped_resolved_originals_filtered_by_identity.pafx"
+        filt="results/E04_mapped_resolved_originals_filtered_by_identity.pafx"
     params:
         min_copy_identity=config["min_copy_identity"]
     localrule: True
     conda: "../envs/sda2.main.yml"
-    log: "logs/E03_FilterLowIdentityPaf.log"
-    benchmark: "benchmark/E03_FilterLowIdentityPaf.tsv"
+    log: "logs/E04_FilterLowIdentityPaf.log"
+    benchmark: "benchmark/E04_FilterLowIdentityPaf.tsv"
     shell:"""
     {{
-        echo "##### E03_FilterLowIdentityPaf" > {log}
+        echo "##### E04_FilterLowIdentityPaf" > {log}
         cat {input.pafx} | \
             awk -v minId={params.min_copy_identity} ' \
                 BEGIN \
@@ -86,19 +117,19 @@ rule E03_FilterLowIdentityPaf:
     }} 2>> {log}
     """
 
-rule E04_AnnotateOriginal:
+rule E05_AnnotateOriginal:
     input:
-        pafx="results/E03_mapped_resolved_originals_filtered_by_identity.pafx"
+        pafx="results/E04_mapped_resolved_originals_filtered_by_identity.pafx"
     output:
-        pafxAn="results/E04_mapped_resolved_originals_filtered_ogAnnotated.pafx"
+        pafxAn="results/E05_mapped_resolved_originals_filtered_ogAnnotated.pafx"
     params:
         marginToCallOriginal=100
     localrule: True
     conda: "../envs/sda2.main.yml"
-    log: "logs/E04_AnnotateOriginal.log"
+    log: "logs/E05_AnnotateOriginal.log"
     shell:"""
     {{
-        echo "##### E04_AnnotateOriginal" > {log}
+        echo "##### E05_AnnotateOriginal" > {log}
         cat {input.pafx} | \
             tr '/' '\\t' | \
             awk -v margin={params.marginToCallOriginal} ' \
@@ -118,19 +149,19 @@ rule E04_AnnotateOriginal:
     """
 
 # Remove copies that deviate from its original copy's length by 0.1 of the original copy's length.
-rule E05_FiltByOriginalLengthMargin:
+rule E06_FiltByOriginalLengthMargin:
     input:
-        pafx="results/E04_mapped_resolved_originals_filtered_ogAnnotated.pafx"
+        pafx="results/E05_mapped_resolved_originals_filtered_ogAnnotated.pafx"
     output:
-        filt="results/E05_mapped_resolved_originals_filtered_ogLength.pafx"
+        filt="results/E06_mapped_resolved_originals_filtered_ogLength.pafx"
     params:
         maxLengthMargin=config["max_length_margin"]
     localrule: True
     conda: "../envs/sda2.main.yml"
-    log: "logs/E05_FiltByOriginalLengthMargin.log"
+    log: "logs/E06_FiltByOriginalLengthMargin.log"
     shell:"""
     {{
-        echo "##### E05_FiltByOriginalLengthMargin" > {log}
+        echo "##### E06_FiltByOriginalLengthMargin" > {log}
         cat {input.pafx} | \
             awk -v maxLengthMargin={params.maxLengthMargin} ' \
                 BEGIN \
@@ -147,15 +178,15 @@ rule E05_FiltByOriginalLengthMargin:
     """
 
 # Locate Exons in gene copies and filter out gene copies that contain <50% of their gene model
-rule E06_LocateExons:
+rule E07_LocateExons:
     input:
-        pafx="results/E05_mapped_resolved_originals_filtered_ogLength.pafx",
+        pafx="results/E06_mapped_resolved_originals_filtered_ogLength.pafx",
         gm="results/C03_gene_model_filt.fasta",
         asm="results/A01_assembly.fasta"
     output:
         gmidx="results/C03_gene_model_filt.fasta.fai",
-        pafxe="results/E06_mapped_resolved_originals_wExons.pafxe",
-        igv_bed="results/E06_mapped_resolved_originals_wExons.igv.bed"
+        pafxe="results/E07_mapped_resolved_originals_wExons.pafxe",
+        igv_bed="results/E07_mapped_resolved_originals_wExons.igv.bed"
     params:
         workflowDir=workflow.basedir
     resources:
@@ -165,11 +196,11 @@ rule E06_LocateExons:
         tmpdir=tmpDir
     retries: 2
     conda: "../envs/sda2.main.yml"
-    log: "logs/E06_LocateExons.log"
-    benchmark: "benchmark/E06_LocateExons.tsv"
+    log: "logs/E07_LocateExons.log"
+    benchmark: "benchmark/E07_LocateExons.tsv"
     shell:"""
     {{
-        echo "##### E06_LocateExons" > {log}
+        echo "##### E07_LocateExons" > {log}
         echo "### Determine Node Variables" >> {log}
         mem_per_cpu="$(echo "{resources.mem_mb}/1.5/{resources.cpus_per_task}" | bc)"
         echo "Memory per cpu: $mem_per_cpu" >> {log}
@@ -224,23 +255,23 @@ rule E06_LocateExons:
     }} 2>> {log}
     """
 
-rule E07_GroupIsoformsByExonOverlap:
+rule E08_GroupIsoformsByExonOverlap:
     input:
-        pafxe="results/E06_mapped_resolved_originals_wExons.pafxe"
+        pafxe="results/E07_mapped_resolved_originals_wExons.pafxe"
     output:
-        marked="results/E07_mapped_resolved_originals_annotated_network.pafxe",
-        filt="results/E07_mapped_resolved_originals_filtered_network.pafxe",
-        coms="results/E07_isoform_communities_groupedByExonOverlap.tsv"
+        marked="results/E08_mapped_resolved_originals_annotated_network.pafxe",
+        filt="results/E08_mapped_resolved_originals_filtered_network.pafxe",
+        coms="results/E08_isoform_communities_groupedByExonOverlap.tsv"
     params:
         uncharacterized_prefix=config["uncharacterized_gene_name_prefix"],
         workflowDir=workflow.basedir
     localrule: True
     conda: "../envs/sda2.main.yml"
-    log: "logs/E07_GroupIsoformsByExonOverlap.log"
-    benchmark: "benchmark/E07_GroupIsoformsByExonOverlap.tsv"
+    log: "logs/E08_GroupIsoformsByExonOverlap.log"
+    benchmark: "benchmark/E08_GroupIsoformsByExonOverlap.tsv"
     shell:"""
     {{
-        echo "##### E07_GroupIsoformsByExonOverlap" > {log}
+        echo "##### E08_GroupIsoformsByExonOverlap" > {log}
         echo "### Identify Prefix of Uncharacterized Genes" >> {log}
         prefix="{params.uncharacterized_prefix}"
         prefix_len=${{#prefix}}
@@ -254,26 +285,26 @@ rule E07_GroupIsoformsByExonOverlap:
         fi
 
         echo "### Annotate non-representative overlapping genes" >> {log}
-        {params.workflowDir}/scripts/E07_NetworkFilter.py {input.pafxe} {output.coms} "$unchar_filt_flag" 1> {output.marked}
+        {params.workflowDir}/scripts/E08_NetworkFilter.py {input.pafxe} {output.coms} "$unchar_filt_flag" 1> {output.marked}
         cat {output.marked} | \
             awk 'BEGIN {{OFS="\\t"}} ($24=="yes") {{print $0}}' | \
             cut -f1-23 1> {output.filt}
     }} 2>> {log}
     """
 
-rule E08_FinalResolvedCopiesBed:
+rule E09_FinalResolvedCopiesBed:
     input:
-        pafxe="results/E06_mapped_resolved_originals_wExons.pafxe",
-        pafx="results/E07_mapped_resolved_originals_filtered_network.pafxe"
+        pafxe="results/E07_mapped_resolved_originals_wExons.pafxe",
+        pafx="results/E08_mapped_resolved_originals_filtered_network.pafxe"
     output:
-        bed="results/E08_resolved_copies.bed", # unfiltered by E07 Network Filter Results
-        bed12="results/E08_resolved_copies.igv.bed" # filtered according to E07 Network Filter Results
+        bed="results/E09_resolved_copies.bed", # unfiltered by E08 Network Filter Results
+        bed12="results/E09_resolved_copies.igv.bed" # filtered according to E08 Network Filter Results
     localrule: True
     conda: "../envs/sda2.main.yml"
-    log: "logs/E08_FinalResolvedCopiesBed.log"
+    log: "logs/E09_FinalResolvedCopiesBed.log"
     shell:"""
     {{
-        echo "##### E08_FinalResolvedCopiesBed" > {log}
+        echo "##### E09_FinalResolvedCopiesBed" > {log}
 
         cat {input.pafxe} | \
             awk 'BEGIN {{OFS="\\t"}} \
