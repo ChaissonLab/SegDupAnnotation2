@@ -10,9 +10,11 @@
 ### Import Libraries
 from snakemake.utils import validate
 from snakemake.utils import min_version
+import tempfile
+import shutil
 
 ### Workflow Configurations
-min_version("7.25.0") # Created using Snakemake v7.25.0
+min_version("7.25.0") # Created using Snakemake v7.32.4
 
 configfile: "config/sd_analysis.json"
 validate(config, "schemas/config.schema.json", set_default=True)
@@ -21,7 +23,6 @@ containerized: "docker://krabbani/segdupannotation2:1.2.s"
 
 ### Variables & Constants
 species=config["species"]
-tmpDir=config["temp"]
 bamFiles={f.split("/")[-1]: f for f in config["reads_bam"]}
 if config["hap2"] == "":
     hap_aware_mode = False
@@ -29,7 +30,6 @@ else:
     hap_aware_mode = True
 
 # Rule Resource Variables
-
 if config["override_mem"] == -1:
     cluster_mem_mb_baby   = config["cluster_mem_mb_baby"]
     cluster_mem_mb_small  = config["cluster_mem_mb_small"]
@@ -53,6 +53,10 @@ else:
     cluster_cpus_per_task_small  = config["override_num_cores"]
     cluster_cpus_per_task_medium = config["override_num_cores"]
     cluster_cpus_per_task_large  = config["override_num_cores"]
+
+### Create Temporary Directory
+tmpDir=tempfile.mkdtemp(suffix="_tmp",prefix=species+"_",dir=config["temp"])
+print("Temporary Directory Created: "+tmpDir,file=sys.stderr)
 
 ### Load Rules
 if hap_aware_mode:
@@ -85,6 +89,11 @@ onstart:
     if hap_aware_mode:
         print("Haplotype Aware Mode Activated")
 onsuccess:
+    try:
+        shutil.rmtree(tmpDir)
+    except OSError as e:
+        print("Error: %s : %s" % (tmpDir,e.strerror))
     print("Workflow finished without error.")
 onerror:
     print("An error occurred. Check the .snakemake/log/ directory, the logs/ directory, and any cluster logs for details.")
+    print("The temporary directory "+tmpDir+" was not deleted.")
