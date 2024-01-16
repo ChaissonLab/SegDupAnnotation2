@@ -52,7 +52,7 @@ Internet access is required for snakemake to download the docker image and conda
 
 ## Salient Output File Specifications
 
-results/G01\_dups.bed
+results/G01\_dups\_\<isoform_grouping_type\>.bed
 | Column | Description |
 | --- | ------ |
 | #chr | Gene copy's position in assembly. |
@@ -66,13 +66,13 @@ results/G01\_dups.bed
 | p\_identity | Similarity to 'Original' gene calculated as: #matches/(#matches+#mismatches+#insertion\_events+#deletion\_events) |
 | p\_accuracy | Similarity to 'Original' gene calculated as : #matches/(#matches+#mismatches+#insertions+#deletions) |
 | identity | Notes whether copy is the 'Original' or a resolved 'Copy'. |
-| depth | Mean gene depth over mean assembly depth calculated using 100 bp bins. |
+| depth | Mean gene depth over mean assembly depth. |
 | depth\_stdev | Standard deviation of gene depth over mean assembly depth calculated using 100 bp bins. |
 | copy\_num | Rounded depth value. |
 | depth\_by\_vcf | Copy number as determined by hmm's vcf output. |
 
   
-results/G03\_per\_gene\_counts.bed
+results/G03\_per\_gene\_counts\_\<isoform_grouping_type\>.tsv
 | Column | Description |
 | --- | ------ |
 | gene | Gene name. |
@@ -83,7 +83,7 @@ results/G03\_per\_gene\_counts.bed
 | resolvedCount | Number of resolved gene copies. |
 
   
-results/G04\_summary\_stats.tsv  
+results/G04\_summary\_stats\_\<isoform_grouping_type\>.tsv  
 Contains tab delimited summary statistics.
 
 ## Tips

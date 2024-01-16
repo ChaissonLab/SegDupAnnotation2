@@ -10,7 +10,8 @@
 #          workflowDirectory filepath;
 #          tsv filepath of all results with cols gene_num, gene, and depth;
 #          tsv filepath of resolved results with cols gene_num, gene, and depth;
-#          tsv filepath of collapsed results with cols gene_num, gene, and depth
+#          tsv filepath of collapsed results with cols gene_num, gene, and depth;
+#          dataOutputSuffix string
 # Output: Saves four depth plots to "workflowDirectory/../results" directory.
 
 library(ggplot2)
@@ -24,6 +25,7 @@ workflowDir <- params[[1]]
 inputPath_combo <- params[[2]]
 inputPath_res <- params[[3]]
 inputPath_col <- params[[4]]
+dataOutputSuffix <- params[[5]]
 
 # Plotting Function and Variables
 themeBaseSize <- 12
@@ -106,19 +108,19 @@ depthPlot_res   <- geneDepthPlotter(dataframe_res,   tickDist_res,   themeBaseSi
 depthPlot_col   <- geneDepthPlotter(dataframe_col,   tickDist_col,   themeBaseSize=themeBaseSize)
 
 ggsave(depthPlot_combo,
-       filename=paste(workflowDir,"/../results/G05_depthPlot_combo.pdf",sep=""),
+       filename=paste(workflowDir,"/../results/G05_depthPlot",dataOutputSuffix,"_combo.pdf",sep=""),
        width=plotWidthInInches,
        height=length(dataframe_combo$gene_num)/5+1,
        units="in",
        limitsize=FALSE)
 ggsave(depthPlot_res,
-       filename=paste(workflowDir,"/../results/G05_depthPlot_res.pdf",sep=""),
+       filename=paste(workflowDir,"/../results/G05_depthPlot",dataOutputSuffix,"_res.pdf",sep=""),
        width=plotWidthInInches,
        height=length(dataframe_res$gene_num)/5+1,
        units="in",
        limitsize=FALSE)
 ggsave(depthPlot_col,
-       filename=paste(workflowDir,"/../results/G05_depthPlot_col.pdf",sep=""),
+       filename=paste(workflowDir,"/../results/G05_depthPlot",dataOutputSuffix,"_col.pdf",sep=""),
        width=plotWidthInInches,
        height=length(dataframe_col$gene_num)/5+1,
        units="in",
@@ -147,7 +149,7 @@ depthPlot_merged <- grid.arrange(depthPlot_col_forMerged_grob,depthPlot_res_forM
                                  layout_matrix=layout)
 
 ggsave(depthPlot_merged,
-       filename=paste(workflowDir,"/../results/G05_depthPlot_merged.pdf",sep=""),
+       filename=paste(workflowDir,"/../results/G05_depthPlot",dataOutputSuffix,"_merged.pdf",sep=""),
        width=plotWidthInInches,
        height=length(dataframe_combo$gene_num)/5+1,
        units="in",

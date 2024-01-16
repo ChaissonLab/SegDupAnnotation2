@@ -251,7 +251,7 @@ rule G05_SummaryFigs:
             tr -d '#' > {output.colTmp}
 
         echo "### Generate figs" >> {log}
-        Rscript {params.workflowDir}/scripts/G05_SummaryFigs.R {params.workflowDir} {output.comboTmp} {output.resTmp} {output.colTmp}
+        Rscript {params.workflowDir}/scripts/G05_SummaryFigs.R {params.workflowDir} {output.comboTmp} {output.resTmp} {output.colTmp} {wildcards.base}
     }} 2>> {log}
     """
     

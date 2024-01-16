@@ -77,7 +77,7 @@
             "description": "Bed file path of assembly coordinates to filter out of results.",
             "type": "string",
             "examples": [ "/scratch2/krabbani/sda_tmp/tmp_bTaeGut2_finch" ],
-            "default": []
+            "default": ""
         },
         "min_copy_identity": {
             "description": "Minimum gene copy identity to keep when the gene copy is compared to the original copy.",
