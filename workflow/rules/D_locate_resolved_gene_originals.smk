@@ -54,6 +54,7 @@ rule D02_FilterResolvedOriginals_FiltPercentAligned:
         filt="results/D02_resolved_originals_filtPercentAligned.bam",
         idx="results/D02_resolved_originals_filtPercentAligned.bam.csi"
     params:
+        min_gm_alignment=config["min_gene_model_alignment"],
         workflowDir=workflow.basedir
     resources:
         mem_mb=cluster_mem_mb_baby,
@@ -65,9 +66,8 @@ rule D02_FilterResolvedOriginals_FiltPercentAligned:
     {{
         echo "##### D02_FilterResolvedOriginals_FiltPercentAligned" > {log}
         echo "### Filter Gene Model" >> {log}
-        
-            {params.workflowDir}/scripts/D02_FilterMappedLength.py {input.bam} | \
-                samtools view -b -o {output.filt}
+        {params.workflowDir}/scripts/D02_AnnotateMappedLength.py {input.bam} | \
+            samtools view -e "[pa] >= {params.min_gm_alignment}" -b -o {output.filt}
 
         echo "### Index Resolved Original Hits Filt Bam" >> {log}
         samtools index -c {output.filt}

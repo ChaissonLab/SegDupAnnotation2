@@ -12,11 +12,11 @@ rule G01_AddHeaders:
         dups_any="results/F06_dups_groupedByAnyOverlap.bed"
     output:
         bed_all   ="results/G01_dups_allHits.bed",
-        bed12_all ="results/G01__dups_allHits.igv.bed",
+        bed12_all ="results/G01_igv_dups_allHits.igv.bed",
         bed_exon  ="results/G01_dups_groupedByExonOverlap.bed",
-        bed12_exon="results/G01__dups_groupedByExonOverlap.igv.bed",
+        bed12_exon="results/G01_igv_dups_groupedByExonOverlap.igv.bed",
         bed_any   ="results/G01_dups_groupedByAnyOverlap.bed",
-        bed12_any ="results/G01__dups_groupedByAnyOverlap.igv.bed"
+        bed12_any ="results/G01_igv_dups_groupedByAnyOverlap.igv.bed"
     localrule: True
     conda: "../envs/sda2.main.yml"
     log: "logs/G01_AddHeaders.log"
@@ -30,9 +30,9 @@ rule G01_AddHeaders:
                 BEGIN \
                     {{OFS="\\t"; \
                     print "#chr","start","end","gene","orig_chr","orig_start","orig_end", \
-                    "strand","p_identity","p_accuracy","identity", \
+                    "strand","p_identity","p_accuracy","identity","p_gm_alignment", \
                     "depth","depth_stdev","copy_num","depth_by_vcf"}} \
-                {{print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$14,$15,$16,$17}}' 1> {output.bed_all}
+                {{print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$14,$15,$16,$17,$18}}' 1> {output.bed_all}
 
         cat {input.dups_all} | \
             awk 'BEGIN {{OFS="\\t"}} \
@@ -46,9 +46,9 @@ rule G01_AddHeaders:
                 BEGIN \
                     {{OFS="\\t"; \
                     print "#chr","start","end","gene","orig_chr","orig_start","orig_end", \
-                    "strand","p_identity","p_accuracy","identity", \
+                    "strand","p_identity","p_accuracy","identity","p_gm_alignment", \
                     "depth","depth_stdev","copy_num","depth_by_vcf"}} \
-                {{print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$14,$15,$16,$17}}' 1> {output.bed_exon}
+                {{print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$14,$15,$16,$17,$18}}' 1> {output.bed_exon}
 
         cat {input.dups_exon} | \
             awk 'BEGIN {{OFS="\\t"}} \
@@ -62,9 +62,9 @@ rule G01_AddHeaders:
                 BEGIN \
                     {{OFS="\\t"; \
                     print "#chr","start","end","gene","orig_chr","orig_start","orig_end", \
-                    "strand","p_identity","p_accuracy","identity", \
+                    "strand","p_identity","p_accuracy","identity","p_gm_alignment", \
                     "depth","depth_stdev","copy_num","depth_by_vcf"}} \
-                {{print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$14,$15,$16,$17}}' 1> {output.bed_any}
+                {{print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$14,$15,$16,$17,$18}}' 1> {output.bed_any}
 
         cat {input.dups_any} | \
             awk 'BEGIN {{OFS="\\t"}} \
@@ -96,7 +96,7 @@ rule G02_GeneCountFact:
                 (NR>1) \
                     {{if (lastGene==$4) \
                         {{print $0,"multi"}} \
-                    nCopy=int($14); \
+                    nCopy=int($15); \
                     for (i=1; i<nCopy; i++) \
                         {{print $0,"collapse"}} \
                     lastGene=$4}}' 1> {output.fact}
@@ -124,13 +124,13 @@ rule G03_PerGeneCounts:
                 (NR==1) \
                     {{print "gene","depthNoramlizedToAsm","depth","measuredCov","copyCount","resolvedCount"}} \
                 (NR==2) \
-                    {{gene=$4; depth_sum=$12; count=$14; resolvedNum=1}} \
+                    {{gene=$4; depth_sum=$12; count=$15; resolvedNum=1}} \
                 (NR>2) \
                     {{if ($4==gene) \
-                        {{depth_sum+=$12; count+=$14; resolvedNum++}} \
+                        {{depth_sum+=$12; count+=$15; resolvedNum++}} \
                     else \
                         {{print gene,depth_sum,depth_sum*meanCov,sprintf("%1.f",depth_sum),count,resolvedNum; \
-                        gene=$4; depth_sum=$12; count=$14; resolvedNum=1}} }} \
+                        gene=$4; depth_sum=$12; count=$15; resolvedNum=1}} }} \
                 END \
                     {{print gene,depth_sum,depth_sum*meanCov,sprintf("%1.f",depth_sum),count,resolvedNum;}}' 1> {output.genes}
     }} 2>> {log}
@@ -157,32 +157,32 @@ rule G04_SummaryStats:
             END {{print sum}}')" # sum of total collapsed bases (regardless of occurence within gene - calculated using hmm vcf file)
         collapsedBasesInGenes="$(cat {input.fact} | awk \
             'BEGIN {{OFS="\\t"; sum=0}} \
-            (NR>1 && $16=="collapse") \
-                {{sum+=($3-$2)*$12}} \
+            (NR>1 && $17=="collapse") \
+                {{sum+=($3-$2)*$13}} \
             END {{printf "%1.0i\\n", sum}}')" # sum of collapsed gene copies (excludes 'original' copies and resolved copies)
         resolvedBasesinCollapsedGenes="$(cat {input.fact} | awk \
             'BEGIN {{OFS="\\t"; sum=0}} \
-            (NR>1 && $16=="collapse") \
+            (NR>1 && $17=="collapse") \
                 {{sum+=($3-$2)}} \
             END {{printf "%1.0i\\n", sum}}')" # sum of collapsed gene copies (excludes 'original' copies and resolved copies)
         resolvedBases="$(cat {input.fact} | awk \
             'BEGIN {{OFS="\\t"; sum=0}} \
-            (NR>1 && $16=="multi") \
+            (NR>1 && $17=="multi") \
                 {{sum+=($3-$2)}} \
             END {{print sum}}')" # sum of resolved copies of genes (excludes 'original' copies and collapses)
         resolvedGeneCount="$(cat {input.fact} | awk \
             'BEGIN {{OFS="\\t"}} \
-            (NR>1 && $16=="multi") \
+            (NR>1 && $17=="multi") \
                 {{print $4}}' | \
             uniq | wc -l)"
         collapsedGeneCount="$(cat {input.fact} | awk \
             'BEGIN {{OFS="\\t"}} \
-            (NR>1 && $16=="collapse") \
+            (NR>1 && $17=="collapse") \
                 {{print $4}}' | \
             uniq | wc -l)"
         collapsedDuplicationCount="$(cat {input.fact} | awk \
             'BEGIN {{OFS="\\t"; count=0}} \
-            (NR>1 && $16=="collapse") \
+            (NR>1 && $17=="collapse") \
                 {{count+=1}} \
             END {{print count}}')"
 
@@ -233,7 +233,7 @@ rule G05_SummaryFigs:
             awk 'BEGIN {{OFS="\\t"; gene=""; gene_num=0}} \
                 (NR==1) \
                     {{print "gene_num",$0}} \
-                (NR>1 && $13<=1) \
+                (NR>1 && $14<=1) \
                     {{if (gene!=$4) \
                         {{geneNum+=1}} \
                     gene=$4; \
@@ -243,7 +243,7 @@ rule G05_SummaryFigs:
             awk 'BEGIN {{OFS="\\t"; gene=""; gene_num=0}} \
                 (NR==1) \
                     {{print "gene_num",$0}} \
-                (NR>1 && $13>1) \
+                (NR>1 && $14>1) \
                     {{if (gene!=$4) \
                         {{geneNum+=1}} \
                     gene=$4; \

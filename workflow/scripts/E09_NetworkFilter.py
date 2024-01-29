@@ -85,35 +85,22 @@ isoforms = np.empty([numTotalCopies],
                                 'mapping_qual', 'aln_type', 'num_chain_minimizers', 'chaining_score',
                                 'chaining_score_of_secondary', 'seq_divergence',
                                 'length_of_query_rgn_with_repetitive_seeds', 'percent_identity',
-                                'percent_accuracy','original','exon_sizes','exon_starts',
+                                'percent_accuracy','original','exon_sizes','exon_starts','gm_alignment',
                                 'copy_id','picked','exon_sum'),
                         'formats':('U'+str(geneStrLen),'u8','u8','u8','U1','U'+str(chromStrLen),'i',
                                 'u8','u8','u8','u8',
                                 'u1','U1','U10','U10',
                                 'U10','U10',
                                 'U10','d',
-                                'd','U8','U'+str(exonSizeStrLen),'U'+str(exonStartStrLen),
+                                'd','U8','U'+str(exonSizeStrLen),'U'+str(exonStartStrLen),'d',
                                 'u8','U3','u8')})
-
-# # VERSION FOR BED FILE INPUT - TODO DELETE THIS COMMENT BLOCK
-# isoforms = np.empty([numTotalCopies],
-#                     dtype={'names': ('chrom', 'start', 'end', 'gene', 'score', 'strand',
-#                                      'first_exon_start', 'last_exon_end',
-#                                      'copy_id','picked','exon_sum'),
-#                           'formats':('U'+str(chromStrLen),'u8','u8','U'+str(geneStrLen),'u2','U1',
-#                                      'u8','u8',
-#                                      'u8','u1','u8')})
-# GENE_ISOFORMS_I=3
-# COPY_ID_ISOFORMS_I=8
-# PICKED_ISOFORMS_I=9
-# EXON_SUM_ISOFORMS_I=10
 
 GENE_ISOFORMS_I=0
 Q_SEQ_LEN_ISOFORMS_I=1
 ORIGINAL_ISOFORMS_I=20
-COPY_ID_ISOFORMS_I=23
-PICKED_ISOFORMS_I=24
-EXON_SUM_ISOFORMS_I=25
+COPY_ID_ISOFORMS_I=24
+PICKED_ISOFORMS_I=25
+EXON_SUM_ISOFORMS_I=26
 
 exons = np.empty([numTotalExons],
                  dtype={'names': ('copy_id', 'chrom', 'strand', 'start', 'end','sum'),
@@ -135,16 +122,12 @@ for line in pafxeFile:
     pafxeLine=line.split()
     exonSizes=[int(num) for num in pafxeLine[EXON_SIZES_PAFXE_I].split(",")]
     exonSum=sum(exonSizes)
-    # # VERSION FOR BED FILE INPUT - TODO DELETE THIS COMMENT BLOCK
-    # isoforms[copyNum]=(pafxeLine[CHROM_PAFXE_I],int(pafxeLine[START_PAFXE_I]),int(pafxeLine[END_PAFXE_I]),pafxeLine[GENE_PAFXE_I],
-    #                    int(pafxeLine[4]),pafxeLine[5],int(pafxeLine[6]),
-    #                    int(pafxeLine[7]),copyNum,0,exonSum)
     isoforms[copyNum]=(pafxeLine[GENE_PAFXE_I],int(pafxeLine[1]),int(pafxeLine[2]),int(pafxeLine[3]),pafxeLine[4],pafxeLine[CHROM_PAFXE_I],int(pafxeLine[6]),
                 int(pafxeLine[START_PAFXE_I]),int(pafxeLine[END_PAFXE_I]),int(pafxeLine[9]),int(pafxeLine[10]),
                 int(pafxeLine[11]),pafxeLine[12],pafxeLine[13],pafxeLine[14],
                 pafxeLine[15],pafxeLine[16],
                 pafxeLine[17],float(pafxeLine[18]),float(pafxeLine[19]),pafxeLine[ORIGINAL_ISOFORMS_I],
-                pafxeLine[EXON_SIZES_PAFXE_I],pafxeLine[EXON_STARTS_PAFXE_I],
+                pafxeLine[EXON_SIZES_PAFXE_I],pafxeLine[EXON_STARTS_PAFXE_I],float(pafxeLine[23]),
                 copyNum,'no',exonSum)
     exonStarts=[int(num) for num in pafxeLine[EXON_STARTS_PAFXE_I].split(",")]
     for i in range(len(exonSizes)):
@@ -240,8 +223,6 @@ for subgraph_nodes in nx.connected_components(overlapGraph):
     elif len(list(sub.nodes)) == 1:
         communities_leiden.append([list(sub.nodes)[0]])
 print("-  "+str(len(communities_leiden))+" gene communities detected.", file=sys.stderr)
-
-# communities_leiden=sorted(communities_leiden, key=len, reverse=True) # Useful for testing only - TODO Delete Me
 
 # Join Leiden Communities By Gene Names
 # (nodes = gene name, edges = between communities_leiden family members, node weight ids = list of isoform ids)

@@ -94,6 +94,11 @@
             "type": "number",
             "default": 0.10
         },
+        "min_gene_model_alignment": {
+            "description": "Minimum percent alignment of gene model to gene copy as a decimal.",
+            "type": "number",
+            "default": 0.75
+        },
         "min_depth": {
             "description": "Minimum mean copy depth to keep as percentage of mean assembly depth.",
             "type": "number",

@@ -1,14 +1,15 @@
 # Flow of this smk file:
-# - E01 map resolved originals to asm (out: paf)
-# - E02 remove hits that intersect with Flagger called regions
+# - E01 Map resolved originals to asm (out: paf)
+# - E02 Remove hits that intersect with Flagger called regions
 # - E03 Needleman Wunch alignment of copy hits to original (calc cigar/matches/mismatches/etc)
-# - E03 calculate resolved copy identity/accuracy
-# - E04 filter by identity/accuracy
+# - E03 Calculate resolved copy identity/accuracy
+# - E04 Filter by identity/accuracy
 # - E05 Annotate Original and sort by gene then by hit loc
 # - E06 Filter by Original's hit length margin
-# - E07 locate exons
-# - E08 Overlapping Nework Filter (to consolidate overlapping genes)
-# - E09 paf to bed
+# - E07 Locate exons
+# - E08 Filter by percent alignment of gene model to asm for each copy.
+# - E09 Overlapping Nework Filter (to consolidate overlapping genes)
+# - E10 paf to bed
 
 
 rule E01_GetResolvedCopiesPaf:
@@ -185,8 +186,7 @@ rule E07_LocateExons:
         asm="results/A01_assembly.fasta"
     output:
         gmidx="results/C03_gene_model_filt.fasta.fai",
-        pafxe="results/E07_mapped_resolved_originals_wExons.pafxe",
-        igv_bed="results/E07_mapped_resolved_originals_wExons.igv.bed"
+        pafxe="results/E07_mapped_resolved_originals_wExons.pafxe"
     params:
         workflowDir=workflow.basedir
     resources:
@@ -228,14 +228,23 @@ rule E07_LocateExons:
 
             samtools view -b -F 2316 "$tmp_dir"/gene_copy.sam > "$tmp_dir"/gene_copy.bam # -F 4,8,256,2048
             samtools index "$tmp_dir"/gene_copy.bam
-            {params.workflowDir}/scripts/D02_FilterMappedLength.py "$tmp_dir"/gene_copy.bam | \
-                samtools view -b -o "$tmp_dir"/gene_copy_filt.bam # passes filter if mapped gene copy contains >= 50% gene model
+            {params.workflowDir}/scripts/D02_AnnotateMappedLength.py "$tmp_dir"/gene_copy.bam | \
+                samtools view -b -o "$tmp_dir"/gene_copy_filt.bam
 
             if [ -f "$tmp_dir"/gene_copy_filt.bam ]; then
                 bedtools bamtobed -bed12 -i "$tmp_dir"/gene_copy_filt.bam > "$tmp_dir"/gene_copy.bed
-                head -1 "$tmp_dir"/gene_copy.bed | awk -v funcInputPaf="$pafLine" 'BEGIN {{OFS=" "}} {{print funcInputPaf,$11,$12}}' | tr ' ' '\\t' >> {output.pafxe}
+                samtools view "$tmp_dir"/gene_copy_filt.bam | \
+                    awk 'BEGIN {{OFS="\\t"}} \
+                        {{pa=""; \
+                        for (i=12; i<=NF; ++i) \
+                            {{if ($i ~ "^pa:f:") \
+                                {{pa = substr($i,6,length($i)-5)}} }} \
+                        print pa}}' | \
+                    paste "$tmp_dir"/gene_copy.bed /dev/stdin/ > "$tmp_dir"/gene_copy.bed13
+
+                head -1 "$tmp_dir"/gene_copy.bed13 | awk -v funcInputPaf="$pafLine" 'BEGIN {{OFS=" "}} {{print funcInputPaf,$11,$12,$13}}' | tr ' ' '\\t' >> {output.pafxe}
                 
-                cat "$tmp_dir"/gene_copy.bed | tail -n+2 >> {resources.tmpdir}/tmp.multiLineTest.err # TODO Delete me
+                cat "$tmp_dir"/gene_copy.bed13 | tail -n+2 >> {resources.tmpdir}/tmp.multiLineTest.err
             fi
 
             rm -rf "$tmp_dir"
@@ -246,32 +255,55 @@ rule E07_LocateExons:
         cat {input.pafx} | tr "\\t" " " | \
             xargs -P {resources.cpus_per_task} -I % bash -c ' \
                 locExons "$@" ' _ %
+    }} 2>> {log}
+    """
 
-        echo "### IGV BED File" >> {log} # TODO For testing Only DELETE ME
-        cat {output.pafxe} | \
+rule E08_FilterByModelMappedLength:
+    input:
+        pafxe="results/E07_mapped_resolved_originals_wExons.pafxe"
+    output:
+        filt="results/E08_mapped_resolved_originals_filtered_modelMappedLength.pafxe",
+        igv_bed="results/E08_mapped_resolved_originals_wExons.igv.bed"
+    params:
+        min_gm_alignment=config["min_gene_model_alignment"],
+        workflowDir=workflow.basedir
+    localrule: True
+    conda: "../envs/sda2.main.yml"
+    log: "logs/E08_FilterByModelMappedLength.log"
+    benchmark: "benchmark/E08_FilterByModelMappedLength.tsv"
+    shell:"""
+    {{
+        echo "##### E08_FilterByModelMappedLength" > {log}
+        cat {input.pafxe} | \
+            awk 'BEGIN {{OFS="\\t"}} \
+                ($24>={params.min_gm_alignment}) \
+                    {{print}}' > {output.filt}
+
+        echo "### IGV BED File" >> {log}
+        cat {output.filt} | \
             awk 'BEGIN {{OFS="\\t"}} \
                 {{split($22,exonSizes,","); \
                 print $6,$8,$9,$1,int($19*1000),$5,$8,$9,"0,0,255",length(exonSizes),$22,$23}}' 1> {output.igv_bed}
     }} 2>> {log}
     """
 
-rule E08_GroupIsoformsByExonOverlap:
+rule E09_GroupIsoformsByExonOverlap:
     input:
-        pafxe="results/E07_mapped_resolved_originals_wExons.pafxe"
+        pafxe="results/E08_mapped_resolved_originals_filtered_modelMappedLength.pafxe"
     output:
-        marked="results/E08_mapped_resolved_originals_annotated_network.pafxe",
-        filt="results/E08_mapped_resolved_originals_filtered_network.pafxe",
-        coms="results/E08_isoform_communities_groupedByExonOverlap.tsv"
+        marked="results/E09_mapped_resolved_originals_annotated_network.pafxe",
+        filt="results/E09_mapped_resolved_originals_filtered_network.pafxe",
+        coms="results/E09_isoform_communities_groupedByExonOverlap.tsv"
     params:
         uncharacterized_prefix=config["uncharacterized_gene_name_prefix"],
         workflowDir=workflow.basedir
     localrule: True
     conda: "../envs/sda2.main.yml"
-    log: "logs/E08_GroupIsoformsByExonOverlap.log"
-    benchmark: "benchmark/E08_GroupIsoformsByExonOverlap.tsv"
+    log: "logs/E09_GroupIsoformsByExonOverlap.log"
+    benchmark: "benchmark/E09_GroupIsoformsByExonOverlap.tsv"
     shell:"""
     {{
-        echo "##### E08_GroupIsoformsByExonOverlap" > {log}
+        echo "##### E09_GroupIsoformsByExonOverlap" > {log}
         echo "### Identify Prefix of Uncharacterized Genes" >> {log}
         prefix="{params.uncharacterized_prefix}"
         prefix_len=${{#prefix}}
@@ -285,26 +317,26 @@ rule E08_GroupIsoformsByExonOverlap:
         fi
 
         echo "### Annotate non-representative overlapping genes" >> {log}
-        {params.workflowDir}/scripts/E08_NetworkFilter.py {input.pafxe} {output.coms} "$unchar_filt_flag" 1> {output.marked}
+        {params.workflowDir}/scripts/E09_NetworkFilter.py {input.pafxe} {output.coms} "$unchar_filt_flag" 1> {output.marked}
         cat {output.marked} | \
-            awk 'BEGIN {{OFS="\\t"}} ($24=="yes") {{print $0}}' | \
-            cut -f1-23 1> {output.filt}
+            awk 'BEGIN {{OFS="\\t"}} ($25=="yes") {{print $0}}' | \
+            cut -f1-24 1> {output.filt}
     }} 2>> {log}
     """
 
-rule E09_FinalResolvedCopiesBed:
+rule E10_FinalResolvedCopiesBed:
     input:
-        pafxe="results/E07_mapped_resolved_originals_wExons.pafxe",
-        pafx="results/E08_mapped_resolved_originals_filtered_network.pafxe"
+        pafxe="results/E08_mapped_resolved_originals_filtered_modelMappedLength.pafxe",
+        pafx="results/E09_mapped_resolved_originals_filtered_network.pafxe"
     output:
-        bed="results/E09_resolved_copies.bed", # unfiltered by E08 Network Filter Results
-        bed12="results/E09_resolved_copies.igv.bed" # filtered according to E08 Network Filter Results
+        bed="results/E10_resolved_copies.bed", # unfiltered by E09 Network Filter Results
+        bed12="results/E10_resolved_copies.igv.bed" # filtered according to E09 Network Filter Results
     localrule: True
     conda: "../envs/sda2.main.yml"
-    log: "logs/E09_FinalResolvedCopiesBed.log"
+    log: "logs/E10_FinalResolvedCopiesBed.log"
     shell:"""
     {{
-        echo "##### E09_FinalResolvedCopiesBed" > {log}
+        echo "##### E10_FinalResolvedCopiesBed" > {log}
 
         cat {input.pafxe} | \
             awk 'BEGIN {{OFS="\\t"}} \
@@ -316,9 +348,9 @@ rule E09_FinalResolvedCopiesBed:
                 split(gene_name[2],og,":"); \
                 split(og[2],ogLocs,"-"); \
                 og_chr=og[1]; og_start=ogLocs[1]; og_end=ogLocs[2]; \
-            print $6,$8,$9,gene_name[1],og_chr,og_start,og_end,strand,$19,$20,$21,$22,$23}}' | \
+            print $6,$8,$9,gene_name[1],og_chr,og_start,og_end,strand,$19,$20,$21,$22,$23,$24}}' | \
             sort -k1,1 -k2,2n -k3,3n -k4,4 1> {output.bed}
-        # Out format: chr,start,end,gene,original_chr,original_start,original_end,strand,p_identity,p_accuracy,exons_sizes,exon_starts
+        # Out format: chr,start,end,gene,original_chr,original_start,original_end,strand,p_identity,p_accuracy,exons_sizes,exon_starts,gm_alignment
         # sorted by chrom, start, end, then gene
 
         echo "### IGV BED File" >> {log}

@@ -9,12 +9,12 @@
 #          - autosomes + sex chr > 1 copy
 #          - resolved duplication > 1 copy
 # - F06 Group Isoforms that have any overlap
-# - F07 Group Isoforms by label created in E08
+# - F07 Group Isoforms by label created in E09
 
 rule F01_GetGeneCoverage: # naive depths
     input:
         depths="results/B01_hmm/B01_cov_bins.bed.gz", # presorted
-        genes="results/E09_resolved_copies.bed" # presorted
+        genes="results/E10_resolved_copies.bed" # presorted
     output:
         bed="results/F01_resolved_copies_cn.bed"
     resources:
@@ -29,8 +29,8 @@ rule F01_GetGeneCoverage: # naive depths
         echo "##### F01_GetGeneCoverage" > {log}
         zcat {input.depths} | \
             bedtools intersect -loj -sorted -a {input.genes} -b /dev/stdin | \
-            bedtools groupby -g 1,2,3,4,5,6,7,8,9,10,11,12,13 -c 17,17 -o mean,stdev 1> {output.bed}
-        # Out format: chr,start,end,gene,original_chr,original_start,original_end,strand,p_identity,p_accuracy,copy,exons_sizes,exon_starts,depth_by_traditional(non-vcf),depth_by_traditional(non-vcf)-stdDev
+            bedtools groupby -g 1,2,3,4,5,6,7,8,9,10,11,12,13,14 -c 18,18 -o mean,stdev 1> {output.bed}
+        # Out format: chr,start,end,gene,original_chr,original_start,original_end,strand,p_identity,p_accuracy,copy,exons_sizes,exon_starts,gm_alignment,depth_by_traditional(non-vcf),depth_by_traditional(non-vcf)-stdDev
     }} 2>> {log}
     """
 
@@ -57,7 +57,7 @@ rule F02_LabelCopyNums:
                                         {{return i}}}} \
                 BEGIN \
                     {{OFS="\\t"}} \
-                {{print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14/meanCov,$15/meanCov,round($14/meanCov)}}' 1> {output.bed}
+                {{print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15/meanCov,$16/meanCov,round($15/meanCov)}}' 1> {output.bed}
     }} 2>> {log}
     """
 
@@ -83,9 +83,9 @@ rule F03_GetGeneHmmCoverage: # hmm vcf depths
             awk 'BEGIN {{OFS="\\t"}} ($4!=0) {{print}}' 1> {output.hmm_noZero}
         bedtools intersect -loj -a {input.genes} -b {output.hmm_noZero} -f 1 | \
             awk 'BEGIN {{OFS="\\t"}} \
-                {{if ($19==".") \
-                    {{$19=0}} \
-                print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$20}}' 1> {output.bed}
+                {{if ($20==".") \
+                    {{$20=0}} \
+                print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$21}}' 1> {output.bed}
     }} 2>> {log}
     """
 
@@ -107,7 +107,7 @@ rule F04_FilterOutMinDepth:
             awk -v minDepth={params.minDepth} ' \
                 BEGIN \
                     {{OFS="\\t"}} \
-                ($14>minDepth) \
+                ($15>minDepth) \
                     {{print}}' 1> {output.filt}
     }} 2>> {log}
     """
@@ -149,7 +149,7 @@ rule F06_GroupIsoformsByAnyOverlap:
         bed="results/F05_dups_allFams.bed"
     output:
         tsv=temp("results/F06_isoforms_groupedByAnyOverlap_initial.tsv"),
-        coms="results/F06_isoform_communities_groupedByAnyOverlap.txt",
+        coms="results/F06_isoform_communities_groupedByAnyOverlap.tsv",
         bed_filt="results/F06_dups_groupedByAnyOverlap.bed"
     params:
         workflowDir=workflow.basedir
@@ -182,10 +182,10 @@ rule F06_GroupIsoformsByAnyOverlap:
 rule F07_PickRepresentativeForIsoformsGroupedByExonOverlap:
     input:
         bed="results/F05_dups_allFams.bed",
-        iso="results/E08_isoform_communities_groupedByExonOverlap.tsv"
+        iso="results/E09_isoform_communities_groupedByExonOverlap.tsv"
     output:
         iso_simp=temp("results/F07_isoform_communities_groupedByExonOverlap_initial_simplified.tsv"),
-        coms="results/F07_isoform_communities_groupedByExonOverlap.txt",
+        coms="results/F07_isoform_communities_groupedByExonOverlap.tsv",
         reps="results/F07_dups_groupedByExonOverlap.bed"
     params:
         workflowDir=workflow.basedir
