@@ -65,7 +65,7 @@ rule E02_FilterPafByBed:
 
 rule E03_GetResolvedCopyIdentities:
     input:
-        paf="results/E01_resolved_copies.paf",
+        paf="results/E02_resolved_copies_filt.paf",
         asm="results/A01_assembly.fasta"
     output:
         pafc="results/E03_mapped_resolved_originals.pafxc",
