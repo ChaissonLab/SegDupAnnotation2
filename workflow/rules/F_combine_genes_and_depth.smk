@@ -7,7 +7,8 @@
 #          - autosomal > 2 copies
 #          - sex chr > 1 copy
 #          - autosomes + sex chr > 1 copy
-#          - resolved duplication > 1 copy
+#          - resolved duplication > 1 copy (hap_unaware)
+#          - resolved duplication > 2 copies (hap_aware)
 # - F06 Group Isoforms that have any overlap
 # - F07 Group Isoforms by label created in E09
 
@@ -28,7 +29,7 @@ rule F01_GetGeneCoverage: # naive depths
     {{
         echo "##### F01_GetGeneCoverage" > {log}
         zcat {input.depths} | \
-            bedtools intersect -loj -sorted -a {input.genes} -b /dev/stdin | \
+            bedtools intersect -loj -sorted -a {input.genes} -b stdin | \
             bedtools groupby -g 1,2,3,4,5,6,7,8,9,10,11,12,13,14 -c 18,18 -o mean,stdev 1> {output.bed}
         # Out format: chr,start,end,gene,original_chr,original_start,original_end,strand,p_identity,p_accuracy,copy,exons_sizes,exon_starts,gm_alignment,depth_by_traditional(non-vcf),depth_by_traditional(non-vcf)-stdDev
     }} 2>> {log}
@@ -116,7 +117,8 @@ rule F04_FilterOutMinDepth:
 #          - autosomes > 2 copies
 #          - sex chr > 1 copy
 #          - autosomes + sex chr > 1 copy
-#          - resolved duplication > 1 copy
+#          - resolved duplication > 1 copy (if hap_unaware)
+#          - resolved duplication > 2 copies (if hap_aware)
 #          -> combine with rule MappedSamIdentityDups
 rule F05_FindDups:
     input:
@@ -125,7 +127,8 @@ rule F05_FindDups:
     output:
         dups="results/F05_dups_allFams.bed"
     params:
-        workflowDir=workflow.basedir
+        workflowDir=workflow.basedir,
+        hap_aware_mode=hap_aware_mode
     localrule: True
     conda: "../envs/sda2.main.yml"
     log: "logs/F05_FindDups.log"
@@ -138,9 +141,16 @@ rule F05_FindDups:
             # if copyNum of any copy > 1 or 2 keep gene group
             # if resolved copies present keep gene group
 
+        if [ {params.hap_aware_mode} = "True" ]
+        then
+            hap_aware_flag="--diploid_input"
+        else
+            hap_aware_flag=""
+        fi
+
         cat {input.bed} | \
             sort -k4,4 -k11,11r -k5,5 -k6,6n -k7,7n -k1,1 -k2,2n -k3,3n | \
-            {params.workflowDir}/scripts/F05_SelectDuplications.py /dev/stdin --sex_chrs_list_filepath {input.hapChrs} 1> {output.dups}
+            {params.workflowDir}/scripts/F05_SelectDuplications.py /dev/stdin --sex_chrs_list_filepath {input.hapChrs} "$hap_aware_flag" 1> {output.dups}
     }} 2>> {log}
     """
 

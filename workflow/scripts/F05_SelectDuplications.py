@@ -21,6 +21,7 @@ parser.add_argument("bed_filepath", type=pathlib.Path, help="Bed file with resol
 parser.add_argument('-s','--sex_chrs_list', nargs='+', help="Space separated haploid/sex chromosomes list.")
 parser.add_argument('--sex_chrs_list_filepath', type=pathlib.Path, help="Path of line separated haploid/sex chromosomes list. Supderseded by -s/--sex_chrs_list flag.")
 parser.add_argument('--use_vcf_depth', action='store_true')
+parser.add_argument('--diploid_input', action='store_true', help="Assume input bed file has hits from a union of both haplotypes generated from a haplotype phased assembly. This option will raise the minimum number of resolved autosomal copies that pass this filter from 2 to 3.")
 args=parser.parse_args()
 
 # Vars for bed file index reference
@@ -75,7 +76,8 @@ def printDups(geneList):
         geneCNCount+=int(copy[CN_I])
     if (sexChrPresent and geneCNCount > EXPECTED_HAPLOID_CN) or \
        (not sexChrPresent and geneCNCount > EXPECTED_DIPLOID_CN) or \
-       (len(geneList) >= 2):
+       (not args.diploid_input and len(geneList) >= 2) or \
+       (args.diploid_input and len(geneList) >= 3):
         for copy in geneList:
             sys.stdout.write('\t'.join(copy)+'\n')
 
