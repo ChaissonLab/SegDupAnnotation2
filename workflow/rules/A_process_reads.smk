@@ -109,7 +109,7 @@ rule A03_alignReads:
 
         if [[ {input.reads} == *".bam" ]]
         then
-            echo "### Create fastq files"
+            echo "### Create fastq files" >> {log}
             samtools view -h -F 2304 -u -@ "$numAdditionalThreads" {input.reads} | \
                 samtools collate -O -u -@ "$numAdditionalThreads" - "$tmp_collate_path" | \
                 samtools fastq -@ "$numAdditionalThreads" - > {output.fastq}
