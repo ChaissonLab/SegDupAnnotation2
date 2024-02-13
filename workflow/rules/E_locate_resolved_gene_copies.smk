@@ -1,8 +1,8 @@
 # Flow of this smk file:
 # - E01 Map resolved originals to asm (out: paf)
-# - E02 Remove hits that intersect with Flagger called regions
-# - E03 Needleman Wunch alignment of copy hits to original (calc cigar/matches/mismatches/etc)
-# - E03 Calculate resolved copy identity/accuracy
+# - E02 Needleman Wunch alignment of copy hits to original (calc cigar/matches/mismatches/etc)
+# - E02 Calculate resolved copy identity/accuracy
+# - E03 Remove hits that intersect with Flagger called regions
 # - E04 Filter by identity/accuracy
 # - E05 Annotate Original and sort by gene then by hit loc
 # - E06 Filter by Original's hit length margin
@@ -33,43 +33,13 @@ rule E01_GetResolvedCopiesPaf:
     }} 2>> {log}
     """
 
-rule E02_FilterPafByBed:
+rule E02_GetResolvedCopyIdentities:
     input:
-        paf="results/E01_resolved_copies.paf"
-    output:
-        filt="results/E02_resolved_copies_filt.paf"
-    params:
-        workflowDir=workflow.basedir,
-        bed=config["bed_for_filtering_results"]
-    localrule: True
-    conda: "../envs/sda2.main.yml"
-    log: "logs/E02_FilterPafByBed.log"
-    benchmark: "benchmark/E02_FilterPafByBed.tsv"
-    shell:"""
-    {{
-        echo "##### E02_FilterPafByBed" > {log}
-        if [[ -f {params.bed} ]]
-        then
-            echo "### Run Filter" >> {log}
-            cat {input.paf} | \
-                awk 'BEGIN {{OFS="\\t"}} {{print $6,$8,$9,$0}}' | \
-                bedtools intersect -v -a stdin -b {params.bed} | \
-                cut --complement -f1-3 1> {output.filt}
-        else
-            echo "### Skip filter and generate symbolic link instead." >> {log}
-            echo "# Bed to filter by not provided."
-            ln -s {input.paf} {params.workflowDir}/../{output.filt}
-        fi
-    }} 2>> {log}
-    """
-
-rule E03_GetResolvedCopyIdentities:
-    input:
-        paf="results/E02_resolved_copies_filt.paf",
+        paf="results/E01_resolved_copies.paf",
         asm="results/A01_assembly.fasta"
     output:
-        pafc="results/E03_mapped_resolved_originals.pafxc",
-        pafx="results/E03_mapped_resolved_originals.pafx"
+        pafc="results/E02_mapped_resolved_originals.pafxc",
+        pafx="results/E02_mapped_resolved_originals.pafx"
     params:
         workflowDir=workflow.basedir
     resources:
@@ -79,24 +49,78 @@ rule E03_GetResolvedCopyIdentities:
         tmpdir=tmpDir
     retries: 2
     conda: "../envs/sda2.main.yml"
-    log: "logs/E03_GetResolvedCopyIdentities.log"
-    benchmark: "benchmark/E03_GetResolvedCopyIdentities.tsv"
+    log: "logs/E02_GetResolvedCopyIdentities.log"
+    benchmark: "benchmark/E02_GetResolvedCopyIdentities.tsv"
     shell:"""
     {{
-        echo "##### E03_GetResolvedCopyIdentities" > {log}
+        echo "##### E02_GetResolvedCopyIdentities" > {log}
         echo "### Align and calculate hit identities" >> {log}
+        export OPENBLAS_NUM_THREADS=1        
         cat {input.paf} | xargs -P {resources.cpus_per_task} -I % bash -c ' \
             tmp_dir=`mktemp -d -p {resources.tmpdir} tmp.getIdent.$$.XXXXXX`; \
             echo "$@" | tr "\\t" " " > "$tmp_dir"/line.paf; \
-            {params.workflowDir}/scripts/E03_CalcPafIdentity.py {input.asm} "$tmp_dir" "$tmp_dir"/line.paf 1>> {output.pafc}; \
+            {params.workflowDir}/scripts/E02_CalcPafIdentity.py {input.asm} "$tmp_dir" "$tmp_dir"/line.paf 1>> {output.pafc}; \
             rm -rf "$tmp_dir"; ' _ %
         cat {output.pafc} | cut -f 1-20 1> {output.pafx} # removes cigar string
     }} 2>> {log}
     """
 
+rule E03_FilterPafByBed:
+    input:
+        paf="results/E02_mapped_resolved_originals.pafx"
+    output:
+        bed_draft=temp("results/E03_to_filter_on.bed"),
+        filt="results/E03_mapped_resolved_originals_filt.pafx"
+    params:
+        workflowDir=workflow.basedir,
+        bed=config["bed_for_filtering_results"],
+        flagger_components=expand("{base}",base=config["flagger_components_to_filter"])
+    localrule: True
+    conda: "../envs/sda2.main.yml"
+    log: "logs/E03_FilterPafByBed.log"
+    benchmark: "benchmark/E03_FilterPafByBed.tsv"
+    shell:"""
+    {{
+        echo "##### E03_FilterPafByBed" > {log}
+        if [[ -f "{params.bed}" && -n "{params.flagger_components}" ]]
+        then
+            echo "### Run Flagger Filter" >> {log}
+            cat {params.bed} | \
+                awk 'BEGIN {{OFS="\\t"; data_lines_started="false"}} \
+                (data_lines_started=="true" || !/^track/) \
+                    {{data_lines_started="true"; \
+                    print}}' | \
+                awk -v flagger_components="{params.flagger_components}" \
+                    'BEGIN \
+                        {{OFS="\\t"; \
+                        split(flagger_components,fcs_dict," "); \
+                        for (i in fcs_dict) fcs[fcs_dict[i]]=""}} \
+                    ($4 in fcs) \
+                        {{print $1,$2,$3,$4}}' 1> {output.bed_draft}
+        elif [[ -f "{params.bed}" && -z "{params.flagger_components}" ]]
+        then
+            cut -f1-4 {params.bed} 1> {output.bed_draft}
+        fi
+
+        if [[ -f "{params.bed}" ]]
+        then
+            echo "### Run Filter" >> {log}
+            cat {input.paf} | \
+                awk 'BEGIN {{OFS="\\t"}} {{print $6,$8,$9,$0}}' | \
+                bedtools intersect -v -a stdin -b {output.bed_draft} | \
+                cut --complement -f1-3 1> {output.filt}
+        else
+            echo "### Skip filter and generate symbolic link instead." >> {log}
+            echo "# Bed to filter by not provided." >> {log}
+            ln -s {params.workflowDir}/../{input.paf} {params.workflowDir}/../{output.filt}
+            touch {output.bed_draft}
+        fi
+    }} 2>> {log}
+    """
+
 rule E04_FilterLowIdentityPaf:
     input:
-        pafx="results/E03_mapped_resolved_originals.pafx"
+        pafx="results/E03_mapped_resolved_originals_filt.pafx"
     output:
         filt="results/E04_mapped_resolved_originals_filtered_by_identity.pafx"
     params:
@@ -192,7 +216,7 @@ rule E07_LocateExons:
     resources:
         mem_mb=cluster_mem_mb_medium,
         cpus_per_task=cluster_cpus_per_task_large,
-        runtime=config["cluster_runtime_short"],
+        runtime=config["cluster_runtime_long"],
         tmpdir=tmpDir
     retries: 2
     conda: "../envs/sda2.main.yml"

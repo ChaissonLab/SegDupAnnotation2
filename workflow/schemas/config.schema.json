@@ -79,6 +79,18 @@
             "examples": [ "/scratch2/krabbani/sda_tmp/tmp_bTaeGut2_finch" ],
             "default": ""
         },
+        "flagger_components_to_filter": {
+            "description": "Provide flagger bed file to bed_for_filtering_results option. Here list which flagger components to exclude from analysis. Reference https://github.com/mobinasri/flagger for component descriptions.",
+            "type": "array",
+            "items": {
+                "type": "string",
+                "enum": [ "Err", "Dup", "Hap", "Col", "Unk" ]
+            },
+            "minItems": 0,
+            "uniqueItems": true,
+            "examples": [ [], ["Err"], ["Err", "Dup"] ],
+            "default": []
+        },
         "min_copy_identity": {
             "description": "Minimum gene copy identity to keep when the gene copy is compared to the original copy.",
             "type": "number",
