@@ -107,6 +107,7 @@ rule A03_alignReads:
         tmp_mm2_path=`mktemp -d -p {resources.tmpdir} A03.mm2.XXXX.tmp`
         tmp_sort_path=`mktemp -d -p {resources.tmpdir} A03.sort.XXXX.tmp`
 
+        echo "### Convert to fastqs" >> {log}
         if [[ {input.reads} == *".bam" ]]
         then
             echo "### Create fastq files" >> {log}
