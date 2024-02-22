@@ -53,7 +53,7 @@ rule A03A_mmiIndexAsm:
     log: "logs/A03A_mmiIndexAsm.log"
     benchmark: "benchmark/A03A_mmiIndexAsm.tsv"
     shell:"""
-        echo "##### A03H_mmiIndexAsm" > {log}
+        echo "##### A03A_mmiIndexAsm" > {log}
         echo "### Determine MM2 Parameters" >> {log}
         if [ {params.read_type} = "CCS" ]
         then
