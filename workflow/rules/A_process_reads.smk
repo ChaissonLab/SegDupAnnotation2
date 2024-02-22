@@ -37,11 +37,11 @@ rule A02_faiIndexAsm:
         ln -s {params.workflowDir}/../{output.fai} {params.workflowDir}/../{output.lnk}
     """
 
-rule A03A_mmiIndexAsm:
+rule A03_mmiIndexAsm:
     input:
         hap="results/A01_assembly.fasta"
     output:
-        mmi="results/A03A_assembly.mmi"
+        mmi="results/A03_assembly.mmi"
     params:
         workflowDir=workflow.basedir,
         read_type=config["read_type"]
@@ -50,10 +50,10 @@ rule A03A_mmiIndexAsm:
         cpus_per_task=cluster_cpus_per_task_small,
         runtime=config["cluster_runtime_short"]
     conda: "../envs/sda2.main.yml"
-    log: "logs/A03A_mmiIndexAsm.log"
-    benchmark: "benchmark/A03A_mmiIndexAsm.tsv"
+    log: "logs/A03_mmiIndexAsm.log"
+    benchmark: "benchmark/A03_mmiIndexAsm.tsv"
     shell:"""
-        echo "##### A03A_mmiIndexAsm" > {log}
+        echo "##### A03_mmiIndexAsm" > {log}
         echo "### Determine MM2 Parameters" >> {log}
         if [ {params.read_type} = "CCS" ]
         then
@@ -67,13 +67,13 @@ rule A03A_mmiIndexAsm:
         minimap2 -x $mm2_mode -d {output.mmi} {input.hap} -t {resources.cpus_per_task} 2>> {log}
     """
 
-rule A03_alignReads:
+rule A04_alignReads:
     input:
         reads=lambda wildcards: bamFiles[wildcards.base],
-        mmi=ancient("results/A03A_assembly.mmi")
+        mmi=ancient("results/A03_assembly.mmi")
     output:
-        fastq=temp("results/A03_aligned/A03_{base}.fastq"),
-        aligned=temp("results/A03_aligned/A03_{base}.bam")
+        fastq=temp("results/A04_aligned/A04_{base}.fastq"),
+        aligned=temp("results/A04_aligned/A04_{base}.bam")
     params:
         read_type=config["read_type"]
     priority: 10
@@ -83,11 +83,11 @@ rule A03_alignReads:
         cpus_per_task=cluster_cpus_per_task_large,
         runtime=config["cluster_runtime_long"]
     conda: "../envs/sda2.main.yml"
-    log: "logs/A03_alignReads.{base}.log"
-    benchmark: "benchmark/A03_alignReads.{base}.tsv"
+    log: "logs/A04_alignReads.{base}.log"
+    benchmark: "benchmark/A04_alignReads.{base}.tsv"
     shell:"""
     {{
-        echo "##### A03_alignReads" > {log}
+        echo "##### A04_alignReads" > {log}
         echo "### Determine Node Variables" >> {log}
         mem_per_cpu="$(echo "{resources.mem_mb}/1.5/{resources.cpus_per_task}" | bc)"
         echo "Memory per cpu: $mem_per_cpu" >> {log}
@@ -138,35 +138,35 @@ rule A03_alignReads:
     }} 2>> {log}
     """
 
-rule A04_mergeReads:
+rule A05_mergeReads:
     input:
-        aln=expand("results/A03_aligned/A03_{base}.bam", base=bamFiles.keys())
+        aln=expand("results/A04_aligned/A04_{base}.bam", base=bamFiles.keys())
     output:
-        mrg=protected("results/A04_assembly.bam")
+        mrg=protected("results/A05_assembly.bam")
     resources:
         mem_mb=cluster_mem_mb_small,
         cpus_per_task=cluster_cpus_per_task_small,
         runtime=config["cluster_runtime_long"]
     conda: "../envs/sda2.main.yml"
-    log: "logs/A04_mergeReads.log"
-    benchmark: "benchmark/A04_mergeReads.tsv"
+    log: "logs/A05_mergeReads.log"
+    benchmark: "benchmark/A05_mergeReads.tsv"
     shell:"""
     {{
-        echo "##### A04_mergeReads" > {log}
+        echo "##### A05_mergeReads" > {log}
         numAdditionalThreads=$(echo "{resources.cpus_per_task} - 1" | bc)
         samtools merge {output.mrg} {input.aln} -@"$numAdditionalThreads"
     }} 2>> {log}
     """
 
-rule A05_baiIndexBam:
+rule A06_baiIndexBam:
     input:
-        bam="results/A04_assembly.bam"
+        bam="results/A05_assembly.bam"
     output:
-        bai="results/A04_assembly.bam.bai",
-        lnk="results/A05_assembly.bai"
+        bai="results/A05_assembly.bam.bai",
+        lnk="results/A06_assembly.bai"
     conda: "../envs/sda2.main.yml"
-    log: "logs/A05_indexBam.log"
-    benchmark: "benchmark/A05_indexBam.tsv"
+    log: "logs/A06_indexBam.log"
+    benchmark: "benchmark/A06_indexBam.tsv"
     params:
         workflowDir=workflow.basedir
     resources:
@@ -175,7 +175,7 @@ rule A05_baiIndexBam:
         runtime=config["cluster_runtime_long"]
     shell:"""
     {{
-        echo "##### A05_mergeBams" > {log}
+        echo "##### A06_mergeBams" > {log}
         echo "### Index Bam" >> {log}
         numAdditionalThreads=$(echo "{resources.cpus_per_task} - 1" | bc)
         samtools index {input.bam} -@"$numAdditionalThreads"

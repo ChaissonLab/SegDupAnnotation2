@@ -2,8 +2,8 @@ rule B01_RunHmm:
     input:
         asm="results/A01_assembly.fasta",
         fai="results/A01_assembly.fasta.fai",
-        bam=ancient("results/A04_assembly.bam"),
-        bai="results/A05_assembly.bai" # TODO necessary?
+        bam=ancient("results/A05_assembly.bam"),
+        bai="results/A06_assembly.bai" # TODO necessary?
     output:
        vcf="results/B01_hmm/B01_copy_number.vcf",
        cov=temp("results/B01_hmm/B01_cov_bins.bed"),
