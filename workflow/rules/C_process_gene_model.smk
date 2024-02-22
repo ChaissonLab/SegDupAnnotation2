@@ -73,7 +73,7 @@ rule C03_RemoveUncharacterizedGenes:
     input:
         gm="results/C02_gene_model_renamed.fasta"
     output:
-        gm_noLOC="results/C03_gene_model_filt.fasta"
+        gm_characterized="results/C03_gene_model_filt.fasta"
     localrule: True
     conda: "../envs/sda2.main.yml"
     log: "logs/C03_RemoveUncharacterizedGenes.log"
@@ -91,10 +91,10 @@ rule C03_RemoveUncharacterizedGenes:
                 (/^>/) \
                     {{ prefix=substr($0,1,length(unchar_prefix)+1) }} \
                 (prefix!=">"unchar_prefix) \
-                    {{ print $0 }}' 1> {output.gm_noLOC}
+                    {{ print $0 }}' 1> {output.gm_characterized}
         else
             echo "### Do not remove uncharacterized genes: create symlink instead." >> {log}
-            ln -s {params.workflowDir}/../{input.gm} {params.workflowDir}/../{output.gm_noLOC}
+            ln -s {params.workflowDir}/../{input.gm} {params.workflowDir}/../{output.gm_characterized}
         fi
     }} 2>> {log}
     """
