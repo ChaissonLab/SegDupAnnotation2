@@ -19,7 +19,7 @@ rule A02_faiIndexAsm:
         asm="results/A01_asm.fasta"
     output:
         fai="results/A01_asm.fasta.fai",
-        lnk="results/A02_assembly.fai"
+        lnk="results/A02_asm.fai"
     params:
         workflowDir=workflow.basedir
     resources:
@@ -142,7 +142,7 @@ rule A05_mergeReads:
     input:
         aln=expand("results/A04_aligned/A04_{base}.bam", base=bamFiles.keys())
     output:
-        mrg=protected("results/A05_assembly.bam")
+        mrg=protected("results/A05_asm_reads.bam")
     resources:
         mem_mb=cluster_mem_mb_small,
         cpus_per_task=cluster_cpus_per_task_small,
@@ -160,10 +160,10 @@ rule A05_mergeReads:
 
 rule A06_baiIndexBam:
     input:
-        bam="results/A05_assembly.bam"
+        bam="results/A05_asm_reads.bam"
     output:
-        bai="results/A05_assembly.bam.bai",
-        lnk="results/A06_assembly.bai"
+        bai="results/A05_asm_reads.bam.bai",
+        lnk="results/A06_asm_reads.bai"
     conda: "../envs/sda2.main.yml"
     log: "logs/A06_indexBam.log"
     benchmark: "benchmark/A06_indexBam.tsv"
