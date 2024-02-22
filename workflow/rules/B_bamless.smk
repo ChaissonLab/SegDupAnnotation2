@@ -1,7 +1,7 @@
 rule B00_GenerateFilesWithoutUsingBAMs:
     input:
-        asm="results/A01_assembly.fasta",
-        fai="results/A01_assembly.fasta.fai",
+        asm="results/A01_asm.fasta",
+        fai="results/A01_asm.fasta.fai",
     output:
         warning="WARNING_NO_REAL_BAMS_USED.txt",
         cov="results/B01_hmm/B01_cov_bins.bed.gz",

@@ -14,7 +14,7 @@
 
 rule E01_GetResolvedCopiesPaf:
     input:
-        asm="results/A01_assembly.fasta",
+        asm="results/A01_asm.fasta",
         fa="results/D07_resolved_originals.fasta"
     output:
         paf="results/E01_resolved_copies.paf"
@@ -36,7 +36,7 @@ rule E01_GetResolvedCopiesPaf:
 rule E02_GetResolvedCopyIdentities:
     input:
         paf="results/E01_resolved_copies.paf",
-        asm="results/A01_assembly.fasta"
+        asm="results/A01_asm.fasta"
     output:
         pafc="results/E02_mapped_resolved_originals.pafxc",
         pafx="results/E02_mapped_resolved_originals.pafx"
@@ -207,7 +207,7 @@ rule E07_LocateExons:
     input:
         pafx="results/E06_mapped_resolved_originals_filtered_ogLength.pafx",
         gm="results/C03_gene_model_filt.fasta",
-        asm="results/A01_assembly.fasta"
+        asm="results/A01_asm.fasta"
     output:
         gmidx="results/C03_gene_model_filt.fasta.fai",
         pafxe="results/E07_mapped_resolved_originals_wExons.pafxe"

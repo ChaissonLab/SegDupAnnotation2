@@ -11,7 +11,7 @@
 rule D01_FindResolvedOriginals:
     input:
         gm="results/C03_gene_model_filt.fasta",
-        asm="results/A01_assembly.fasta"
+        asm="results/A01_asm.fasta"
     output:
         bam="results/D01_resolved_originals_prefilt.bam",
         csi="results/D01_resolved_originals_prefilt.bam.csi"
@@ -142,7 +142,7 @@ rule D05_FilterResolvedOriginals_FiltMinLength:
 rule D06_GetResolvedOriginalsFasta_unnamed:
     input:
         bed="results/D05_resolved_originals_filtMinLength.bed",
-        asm="results/A01_assembly.fasta"
+        asm="results/A01_asm.fasta"
     output:
         rgn=temp("results/D06_resolved_originals_filtMinLength.rgn"),
         fa="results/D06_resolved_originals_unnamed.fasta"

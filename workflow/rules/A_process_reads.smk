@@ -3,7 +3,7 @@ rule A01_linkAsm:
     input:
         asm=config["asm"]
     output:
-        asmlink="results/A01_assembly.fasta"
+        asmlink="results/A01_asm.fasta"
     params:
         workflowDir=workflow.basedir
     localrule: True
@@ -16,9 +16,9 @@ rule A01_linkAsm:
 
 rule A02_faiIndexAsm:
     input:
-        asm="results/A01_assembly.fasta"
+        asm="results/A01_asm.fasta"
     output:
-        fai="results/A01_assembly.fasta.fai",
+        fai="results/A01_asm.fasta.fai",
         lnk="results/A02_assembly.fai"
     params:
         workflowDir=workflow.basedir
@@ -39,9 +39,9 @@ rule A02_faiIndexAsm:
 
 rule A03_mmiIndexAsm:
     input:
-        hap="results/A01_assembly.fasta"
+        hap="results/A01_asm.fasta"
     output:
-        mmi="results/A03_assembly.mmi"
+        mmi="results/A03_asm.mmi"
     params:
         workflowDir=workflow.basedir,
         read_type=config["read_type"]
@@ -70,7 +70,7 @@ rule A03_mmiIndexAsm:
 rule A04_alignReads:
     input:
         reads=lambda wildcards: bamFiles[wildcards.base],
-        mmi=ancient("results/A03_assembly.mmi")
+        mmi=ancient("results/A03_asm.mmi")
     output:
         fastq=temp("results/A04_aligned/A04_{base}.fastq"),
         aligned=temp("results/A04_aligned/A04_{base}.bam")

@@ -1,7 +1,7 @@
 rule B01_RunHmm:
     input:
-        asm="results/A01_assembly.fasta",
-        fai="results/A01_assembly.fasta.fai",
+        asm="results/A01_asm.fasta",
+        fai="results/A01_asm.fasta.fai",
         bam=ancient("results/A05_assembly.bam"),
         bai="results/A06_assembly.bai" # TODO necessary?
     output:
