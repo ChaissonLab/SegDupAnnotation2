@@ -23,7 +23,7 @@ import pandas as pd
 MIN_OVERLAP = 10 # remove edges in exon overlap graph if exon overlap is less than this parameter in bases
 
 # Parse Input
-print("---- Running E07_NetworkFilter.py", file=sys.stderr)
+print("---- Running E09_NetworkFilter.py", file=sys.stderr)
 print("-- Parsing Input", file=sys.stderr)
 parser = argparse.ArgumentParser(description="Identify consensus isoforms from isoform clusters using the Leiden community detection algorithm on hits whose exons overlap.")
 parser.add_argument("pafxe_filepath", type=pathlib.Path, help="Input pafxe file. (Including comma separated list of exon lengths, then a comma separated list of exon start positions.)")
