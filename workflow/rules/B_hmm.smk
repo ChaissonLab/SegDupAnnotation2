@@ -1,25 +1,25 @@
 rule B01_RunHmm:
     input:
-        asm="results/A01_asm.fasta",
-        fai="results/A01_asm.fasta.fai",
-        bam=ancient("results/A05_asm_reads.bam"),
-        bai="results/A06_asm_reads.bai" # TODO necessary?
+        asm="results/A0U_{hap}_asm.fasta",
+        fai="results/A0U_{hap}_asm.fasta.fai",
+        bam=ancient("results/A0U_{hap}_reads.bam"),
+        bai="results/A0U_{hap}_reads.bam.bai" # TODO necessary?
     output:
-       vcf="results/B01_hmm/B01_copy_number.vcf",
-       cov=temp("results/B01_hmm/B01_cov_bins.bed"),
-       covz="results/B01_hmm/B01_cov_bins.bed.gz",
-       tbi="results/B01_hmm/B01_cov_bins.bed.gz.tbi", # TODO is this useful?
-       snvs="results/B01_hmm/B01_snvs.tsv"
+       vcf="results/B01_{hap}_hmm/B01_copy_number.vcf",
+       cov=temp("results/B01_{hap}_hmm/B01_cov_bins.bed"),
+       covz="results/B01_{hap}_hmm/B01_cov_bins.bed.gz",
+       tbi="results/B01_{hap}_hmm/B01_cov_bins.bed.gz.tbi", # TODO is this useful?
+       snvs="results/B01_{hap}_hmm/B01_snvs.tsv"
     resources:
         mem_mb=cluster_mem_mb_large,
         cpus_per_task=cluster_cpus_per_task_medium,
         runtime=config["cluster_runtime_long"]
     conda: "../envs/sda2.hmcnc.yml"
-    log: "logs/B01_RunHmm.log"
-    benchmark: "benchmark/B01_RunHmm.tsv"
+    log: "logs/B01_RunHmm.{hap}.log"
+    benchmark: "benchmark/B01_RunHmm.{hap}.tsv"
     shell:"""
     {{
-        echo "##### B01_RunHmm" > {log}
+        echo "##### B01_RunHmm - {wildcards.hap}" > {log}
         echo "### Run HMM" >> {log}
         hmmcnc {input.asm} -a {input.bam} -t {resources.cpus_per_task} -B {output.cov} -S {output.snvs} -o {output.vcf}
 
@@ -33,18 +33,18 @@ rule B01_RunHmm:
 
 rule B02_GetCN:
     input:
-       vcf="results/B01_hmm/B01_copy_number.vcf"
+       vcf="results/B01_{hap}_hmm/B01_copy_number.vcf"
     output:
-       bed="results/B02_copy_number.bed.gz"
+       bed="results/B02_{hap}_copy_number.bed.gz"
     params:
         workflowDir=workflow.basedir
     localrule: True
     conda: "../envs/sda2.main.yml"
-    log: "logs/B02_GetCN.log"
-    benchmark: "benchmark/B02_GetCN.tsv"
+    log: "logs/B02_GetCN.{hap}.log"
+    benchmark: "benchmark/B02_GetCN.{hap}.tsv"
     shell:"""
     {{
-        echo "##### B02_GetCN" > {log}
+        echo "##### B02_GetCN - {wildcards.hap}" > {log}
         {params.workflowDir}/scripts/B02_CovVcfToBed.py {input.vcf} | \
             gzip -c 1> {output.bed}
         # Out format: chr,start,end,copy_num,read_depth
@@ -53,7 +53,7 @@ rule B02_GetCN:
 
 rule B03_CalcMeanCov:
     input:
-        cov="results/B01_hmm/B01_cov_bins.bed.gz"
+        cov=expand("results/B01_{hap}_hmm/B01_cov_bins.bed.gz", hap=OUTPUT_HAPLOTYPES)
     output:
         mc="results/B03_asm_mean_cov.txt"
     localrule: True
@@ -71,7 +71,7 @@ rule B03_CalcMeanCov:
 
 rule B04_CalcMeanDepthPerChrom:
     input:
-        cov="results/B01_hmm/B01_cov_bins.bed.gz"
+        cov=expand("results/B01_{hap}_hmm/B01_cov_bins.bed.gz", hap=OUTPUT_HAPLOTYPES)
     output:
         tsv="results/B04_chr_mean_cov.tsv"
     localrule: True
@@ -134,3 +134,25 @@ rule B05_IdentifyHaploidChrs:
     }} 2>> {log}
     """
     
+rule B06_CalcMeanCovOverResolvedGenes:
+    input:
+        depths=expand("results/B01_{hap}_hmm/B01_cov_bins.bed.gz", hap=OUTPUT_HAPLOTYPES),
+        genes="results/E10_resolved_copies.bed" # presorted
+    output:
+        bed_merged=temp("results/B06_resolved_copies_cn_merged.bed"),
+        mc="results/B06_coding_asm_mean_cov.txt"
+    localrule: True
+    conda: "../envs/sda2.main.yml"
+    log: "logs/B06_CalcMeanCovOverResolvedGenes.log"
+    benchmark: "benchmark/B06_CalcMeanCovOverResolvedGenes.tsv"
+    shell:"""
+    {{
+        echo "##### B06_CalcMeanCovOverResolvedGenes" > {log}
+        bedtools merge -i {input.genes} 1> {output.bed_merged}
+
+        zcat {input.depths} | \
+            sort -k1,1 -k2,2n | \
+            bedtools intersect -loj -sorted -a {output.bed_merged} -b stdin | \
+            awk 'BEGIN {{OFS="\\t"}} {{sum+=$7; count++}} END {{print sum/count}}' 1> {output.mc}
+    }} 2>> {log}
+    """

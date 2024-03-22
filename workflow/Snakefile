@@ -23,7 +23,7 @@ containerized: "docker://krabbani/segdupannotation2:1.2.s"
 
 ### Variables & Constants
 species=config["species"]
-bamFiles={f.split("/")[-1]: f for f in config["reads_bam"]}
+readFiles={f.split("/")[-1]: f for f in config["reads"]}
 if config["hap2"] == "":
     hap_aware_mode = False
 else:
@@ -54,6 +54,12 @@ else:
     cluster_cpus_per_task_medium = config["override_num_cores"]
     cluster_cpus_per_task_large  = config["override_num_cores"]
 
+OUTPUT_SUFFIXES=["_allHits","_groupedByExonOverlap","_groupedByAnyOverlap"]
+if hap_aware_mode:
+    OUTPUT_HAPLOTYPES=["hap1","hap2"]
+else:
+    OUTPUT_HAPLOTYPES=["pri"] # pri is for primary assembly
+
 ### Create Temporary Directory
 tmpDir=tempfile.mkdtemp(suffix="_tmp",prefix=species+"_",dir=config["temp"])
 print("Temporary Directory Created: "+tmpDir,file=sys.stderr)
@@ -63,7 +69,7 @@ if hap_aware_mode:
     include: "rules/A_hapAware_process_reads.smk"
 else:
     include: "rules/A_process_reads.smk"
-if config["reads_bam"]:
+if config["reads"]:
     include: "rules/B_hmm.smk"
 else:
     include: "rules/B_bamless.smk"
@@ -74,7 +80,6 @@ include: "rules/F_combine_genes_and_depth.smk"
 include: "rules/G_summarize_results.smk"
 
 ### Target Rules
-OUTPUT_SUFFIXES=["_allHits","_groupedByExonOverlap","_groupedByAnyOverlap"]
 rule all:
     input:
         expand("results/G01_dups{base}.bed", base=OUTPUT_SUFFIXES),

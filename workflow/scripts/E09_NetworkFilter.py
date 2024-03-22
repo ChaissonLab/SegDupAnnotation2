@@ -42,8 +42,8 @@ STRAND_PAFXE_I=4
 CHROM_PAFXE_I=5
 START_PAFXE_I=7
 END_PAFXE_I=8
-EXON_SIZES_PAFXE_I=21
-EXON_STARTS_PAFXE_I=22
+EXON_SIZES_PAFXE_I=22
+EXON_STARTS_PAFXE_I=23
 
 numTotalCopies=0
 numTotalExons=0
@@ -84,23 +84,23 @@ isoforms = np.empty([numTotalCopies],
                                 'start', 'end', 'num_matching_bases_in_mapping', 'num_bases_in_mapping',
                                 'mapping_qual', 'aln_type', 'num_chain_minimizers', 'chaining_score',
                                 'chaining_score_of_secondary', 'seq_divergence',
-                                'length_of_query_rgn_with_repetitive_seeds', 'percent_identity',
+                                'length_of_query_rgn_with_repetitive_seeds', 'haplotype', 'percent_identity',
                                 'percent_accuracy','original','exon_sizes','exon_starts','gm_alignment',
                                 'copy_id','picked','exon_sum'),
                         'formats':('U'+str(geneStrLen),'u8','u8','u8','U1','U'+str(chromStrLen),'i',
                                 'u8','u8','u8','u8',
                                 'u1','U1','U10','U10',
                                 'U10','U10',
-                                'U10','d',
+                                'U10','U11','d',
                                 'd','U8','U'+str(exonSizeStrLen),'U'+str(exonStartStrLen),'d',
                                 'u8','U3','u8')})
 
 GENE_ISOFORMS_I=0
 Q_SEQ_LEN_ISOFORMS_I=1
-ORIGINAL_ISOFORMS_I=20
-COPY_ID_ISOFORMS_I=24
-PICKED_ISOFORMS_I=25
-EXON_SUM_ISOFORMS_I=26
+ORIGINAL_ISOFORMS_I=21
+COPY_ID_ISOFORMS_I=25
+PICKED_ISOFORMS_I=26
+EXON_SUM_ISOFORMS_I=27
 
 exons = np.empty([numTotalExons],
                  dtype={'names': ('copy_id', 'chrom', 'strand', 'start', 'end','sum'),
@@ -126,8 +126,8 @@ for line in pafxeFile:
                 int(pafxeLine[START_PAFXE_I]),int(pafxeLine[END_PAFXE_I]),int(pafxeLine[9]),int(pafxeLine[10]),
                 int(pafxeLine[11]),pafxeLine[12],pafxeLine[13],pafxeLine[14],
                 pafxeLine[15],pafxeLine[16],
-                pafxeLine[17],float(pafxeLine[18]),float(pafxeLine[19]),pafxeLine[ORIGINAL_ISOFORMS_I],
-                pafxeLine[EXON_SIZES_PAFXE_I],pafxeLine[EXON_STARTS_PAFXE_I],float(pafxeLine[23]),
+                pafxeLine[17],pafxeLine[18],float(pafxeLine[19]),float(pafxeLine[20]),pafxeLine[ORIGINAL_ISOFORMS_I],
+                pafxeLine[EXON_SIZES_PAFXE_I],pafxeLine[EXON_STARTS_PAFXE_I],float(pafxeLine[24]),
                 copyNum,'no',exonSum)
     exonStarts=[int(num) for num in pafxeLine[EXON_STARTS_PAFXE_I].split(",")]
     for i in range(len(exonSizes)):

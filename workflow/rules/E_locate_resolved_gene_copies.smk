@@ -14,9 +14,10 @@
 
 rule E01_GetResolvedCopiesPaf:
     input:
-        asm="results/A01_asm.fasta",
+        asm="results/A0U_asm.fasta",
         fa="results/D07_resolved_originals.fasta"
     output:
+        paf_tmp=temp("results/E01_resolved_copies.tmp.paf"),
         paf="results/E01_resolved_copies.paf"
     resources:
         mem_mb=cluster_mem_mb_xlarge,
@@ -29,14 +30,23 @@ rule E01_GetResolvedCopiesPaf:
     {{
         echo "##### E01_GetResolvedCopiesPaf" > {log}
         echo "### Minimap originals to asm" >> {log}
-        minimap2 -x asm20 -p 0.2 -N 100 -m 10 -E2,0 -s 10 -t {resources.cpus_per_task} {input.asm} {input.fa} 1> {output.paf}
+        minimap2 -x asm20 -p 0.2 -N 100 -m 10 -E2,0 -s 10 -t {resources.cpus_per_task} {input.asm} {input.fa} 1> {output.paf_tmp}
+        echo "### Add haplotype tag"
+        cat {output.paf_tmp} | \
+            awk 'BEGIN {{OFS="\\t"}} \
+                {{if ($1~/haplotype1/) \
+                    {{print $0,"hp:Z:haplotype1"}} \
+                else if ($1~/haplotype2/) \
+                    {{print $0,"hp:Z:haplotype2"}} \
+                else \
+                    {{print $0}} }}' 1> {output.paf}
     }} 2>> {log}
     """
 
 rule E02_GetResolvedCopyIdentities:
     input:
         paf="results/E01_resolved_copies.paf",
-        asm="results/A01_asm.fasta"
+        asm="results/A0U_asm.fasta"
     output:
         pafc="results/E02_mapped_resolved_originals.pafxc",
         pafx="results/E02_mapped_resolved_originals.pafx"
@@ -61,7 +71,7 @@ rule E02_GetResolvedCopyIdentities:
             echo "$@" | tr "\\t" " " > "$tmp_dir"/line.paf; \
             {params.workflowDir}/scripts/E02_CalcPafIdentity.py {input.asm} "$tmp_dir" "$tmp_dir"/line.paf 1>> {output.pafc}; \
             rm -rf "$tmp_dir"; ' _ %
-        cat {output.pafc} | cut -f 1-20 1> {output.pafx} # removes cigar string
+        cat {output.pafc} | cut -f 1-21 1> {output.pafx} # removes cigar string
     }} 2>> {log}
     """
 
@@ -136,7 +146,7 @@ rule E04_FilterLowIdentityPaf:
             awk -v minId={params.min_copy_identity} ' \
                 BEGIN \
                     {{OFS="\\t"}} \
-                ($19 >= minId) \
+                ($20 >= minId) \
                     {{print $0}}' | \
             sort -k1,1 -k6,6 -k8,8n -k9,9n 1> {output.filt}
     }} 2>> {log}
@@ -169,7 +179,7 @@ rule E05_AnnotateOriginal:
                     {{type="Original"}} \
                 else \
                     {{type="Copy"}} \
-                print $1"/"$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,type}}' 1> {output.pafxAn}
+                print $1"/"$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,type}}' 1> {output.pafxAn}
     }} 2>> {log}
     """
 
@@ -207,7 +217,7 @@ rule E07_LocateExons:
     input:
         pafx="results/E06_mapped_resolved_originals_filtered_ogLength.pafx",
         gm="results/C03_gene_model_filt.fasta",
-        asm="results/A01_asm.fasta"
+        asm="results/A0U_asm.fasta"
     output:
         gmidx="results/C03_gene_model_filt.fasta.fai",
         pafxe="results/E07_mapped_resolved_originals_wExons.pafxe"
@@ -300,14 +310,14 @@ rule E08_FilterByModelMappedLength:
         echo "##### E08_FilterByModelMappedLength" > {log}
         cat {input.pafxe} | \
             awk 'BEGIN {{OFS="\\t"}} \
-                ($24>={params.min_gm_alignment}) \
+                ($25>={params.min_gm_alignment}) \
                     {{print}}' > {output.filt}
 
         echo "### IGV BED File" >> {log}
         cat {output.filt} | \
             awk 'BEGIN {{OFS="\\t"}} \
                 {{split($22,exonSizes,","); \
-                print $6,$8,$9,$1,int($19*1000),$5,$8,$9,"0,0,255",length(exonSizes),$22,$23}}' 1> {output.igv_bed}
+                print $6,$8,$9,$1,int($20*1000),$5,$8,$9,"0,0,255",length(exonSizes),$23,$24}}' 1> {output.igv_bed}
     }} 2>> {log}
     """
 
@@ -343,8 +353,8 @@ rule E09_GroupIsoformsByExonOverlap:
         echo "### Annotate non-representative overlapping genes" >> {log}
         {params.workflowDir}/scripts/E09_NetworkFilter.py {input.pafxe} {output.coms} "$unchar_filt_flag" 1> {output.marked}
         cat {output.marked} | \
-            awk 'BEGIN {{OFS="\\t"}} ($25=="yes") {{print $0}}' | \
-            cut -f1-24 1> {output.filt}
+            awk 'BEGIN {{OFS="\\t"}} ($26=="yes") {{print $0}}' | \
+            cut -f1-25 1> {output.filt}
     }} 2>> {log}
     """
 
@@ -372,7 +382,7 @@ rule E10_FinalResolvedCopiesBed:
                 split(gene_name[2],og,":"); \
                 split(og[2],ogLocs,"-"); \
                 og_chr=og[1]; og_start=ogLocs[1]; og_end=ogLocs[2]; \
-            print $6,$8,$9,gene_name[1],og_chr,og_start,og_end,strand,$19,$20,$21,$22,$23,$24}}' | \
+            print $6,$8,$9,gene_name[1],og_chr,og_start,og_end,strand,$19,$20,$21,$22,$23,$24,$25}}' | \
             sort -k1,1 -k2,2n -k3,3n -k4,4 1> {output.bed}
         # Out format: chr,start,end,gene,original_chr,original_start,original_end,strand,p_identity,p_accuracy,exons_sizes,exon_starts,gm_alignment
         # sorted by chrom, start, end, then gene
@@ -380,7 +390,7 @@ rule E10_FinalResolvedCopiesBed:
         echo "### IGV BED File" >> {log}
         cat {input.pafx} | \
             awk 'BEGIN {{OFS="\\t"}} \
-                {{split($22,exonSizes,","); \
-                print $6,$8,$9,$1,int($19*1000),$5,$8,$9,"0,255,0",length(exonSizes),$22,$23}}' 1> {output.bed12}
+                {{split($23,exonSizes,","); \
+                print $6,$8,$9,$1,int($20*1000),$5,$8,$9,"0,255,0",length(exonSizes),$23,$24}}' 1> {output.bed12}
     }} 2>> {log}
     """

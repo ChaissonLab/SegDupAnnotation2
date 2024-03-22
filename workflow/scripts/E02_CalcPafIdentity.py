@@ -55,6 +55,7 @@ s1='-'
 s2='-'
 dv='-'
 rl='-'
+hp='-'
 if 0 <= PAF_TAGS_I < len(paf_vals):
     for val in paf_vals[PAF_TAGS_I].split():
         if val.startswith('tp'):
@@ -69,6 +70,8 @@ if 0 <= PAF_TAGS_I < len(paf_vals):
             dv=val.split(sep=':')[2]
         elif val.startswith('rl'):
             rl=val.split(sep=':')[2]
+        elif val.startswith('hp'):
+            hp=val.split(sep=':')[2]
 
 # Cut Seqs
 srcRgn=paf_vals[Q_NAME_I].split(sep='/')[1]
@@ -92,7 +95,7 @@ if alignment.get('cigar') is None:
     empty_cigar=str(alignment.get('editDistance'))+"X"
 
     # Print Identity & Accuracy Nulls with paf
-    sys.stdout.write('\t'.join(paf_vals[:12])+'\t'+tp+'\t'+str(cm)+'\t'+str(s1)+'\t'+str(s2)+'\t'+str(dv)+'\t'+str(rl)+'\t'+str(pIdentity)+'\t'+str(pAccuracy)+'\t'+empty_cigar+'\n')
+    sys.stdout.write('\t'.join(paf_vals[:12])+'\t'+tp+'\t'+str(cm)+'\t'+str(s1)+'\t'+str(s2)+'\t'+str(dv)+'\t'+str(rl)+'\t'+str(hp)+'\t'+str(pIdentity)+'\t'+str(pAccuracy)+'\t'+empty_cigar+'\n')
 else:
     # Count matches, mismatches, and gaps
     nMatch=0
@@ -122,4 +125,4 @@ else:
     pIdentity=nMatch/(nMatch+nMisMatch+nInDelEvent)
     pAccuracy=nMatch/(nMatch+nMisMatch+nInDel)
 
-    sys.stdout.write('\t'.join(paf_vals[:12])+'\t'+tp+'\t'+str(cm)+'\t'+str(s1)+'\t'+str(s2)+'\t'+str(dv)+'\t'+str(rl)+'\t'+str(pIdentity)+'\t'+str(pAccuracy)+'\t'+alignment.get('cigar')+'\n')
+    sys.stdout.write('\t'.join(paf_vals[:12])+'\t'+tp+'\t'+str(cm)+'\t'+str(s1)+'\t'+str(s2)+'\t'+str(dv)+'\t'+str(rl)+'\t'+str(hp)+'\t'+str(pIdentity)+'\t'+str(pAccuracy)+'\t'+alignment.get('cigar')+'\n')

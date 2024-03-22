@@ -8,8 +8,8 @@
             "description": "The name, code, or identifier for the species or individual being processed.",
             "type": "string"
         },
-        "reads_bam": {
-            "description": "List of paths to read files in bam format. (If none provided, workflow will run in 'bamless' mode and assume a read depth of 100 bp across the assembly. Output files will reflect this depth, and thus results may be confusing. For this reason it is not advised to use this workflow without pacbio read bams.)",
+        "reads": {
+            "description": "List of paths to read files. Acceptable formats and extensions: bam, fastq.gz, fastq, fasta, and fa. (If none provided, workflow will run in 'bamless' mode and assume a read depth of 100 bp across the assembly. Output files will reflect this depth, and thus results may be confusing. For this reason it is not advised to use this workflow without pacbio read bams.)",
             "type": "array",
             "items": {
                 "type": "string"
@@ -29,7 +29,7 @@
                           "/project/mchaisso_100/cmb-16/krabbani/analysis_hgsvc3/HG00171_hap1/results/HG00171.vrk-ps-sseq.asm-hap1.fasta" ]
         },
         "hap2": {
-            "description": "File path to haplotype 2 of this species/individual's genome in fasta format. If provided, will activate haplotype-aware mode.",
+            "description": "File path to haplotype 2 of this species/individual's genome in fasta format. If provided, will activate haplotype-aware mode. The contig/scaffold/chromosome names in the hap2 file must be unique relative to the provided asm/hap1 file.",
             "type": "string",
             "examples": [ "/project/mchaisso_100/cmb-16/krabbani/analysis_hgsvc3/HG00171_hap2/results/HG00171.vrk-ps-sseq.asm-hap2.fasta" ],
             "default": ""

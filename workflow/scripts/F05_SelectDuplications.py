@@ -21,7 +21,7 @@ parser.add_argument("bed_filepath", type=pathlib.Path, help="Bed file with resol
 parser.add_argument('-s','--sex_chrs_list', nargs='+', help="Space separated haploid/sex chromosomes list.")
 parser.add_argument('--sex_chrs_list_filepath', type=pathlib.Path, help="Path of line separated haploid/sex chromosomes list. Supderseded by -s/--sex_chrs_list flag.")
 parser.add_argument('--use_vcf_depth', action='store_true')
-parser.add_argument('--diploid_input', action='store_true', help="Assume input bed file has hits from a union of both haplotypes generated from a haplotype phased assembly. This option will raise the minimum number of resolved autosomal copies that pass this filter from 2 to 3.")
+parser.add_argument('--phased_input', action='store_true', help="Assume input bed file has hits from a union of both haplotypes generated from a haplotype phased assembly. This option will raise the minimum number of resolved autosomal copies that pass this filter from 2 to 3.")
 args=parser.parse_args()
 
 # Vars for bed file index reference
@@ -33,17 +33,17 @@ OG_CHR_I=4
 OG_START_I=5
 OG_END_I=6
 STRAND_I=7
-P_IDENTITY_I=8
-P_ACCURACY_I=9
-COPY_I=10
-#REPRESENTATIVE_I=11
-EXON_SIZES_I=11
-EXON_STARTS_I=12
-GM_ALIGNMENT_I=13
-DEPTH_RATIO_I=14
-CN_BY_DEPTH_STDEV_I=15
-CN_BY_DEPTH_I=16
-CN_BY_VCF_I=17
+HAPLOTYPE_I=8
+P_IDENTITY_I=9
+P_ACCURACY_I=10
+COPY_I=11
+EXON_SIZES_I=12
+EXON_STARTS_I=13
+GM_ALIGNMENT_I=14
+DEPTH_RATIO_I=15
+CN_BY_DEPTH_STDEV_I=16
+CN_BY_DEPTH_I=17
+CN_BY_VCF_I=18
 
 if args.use_vcf_depth:
     CN_I=CN_BY_VCF_I
@@ -70,14 +70,22 @@ else:
 def printDups(geneList):
     sexChrPresent=False
     geneCNCount=0
+    hap1ResolvedCNCount=0
+    hap2ResolvedCNCount=0
     for copy in geneList:
         if copy[CHR_I] in s:
             sexChrPresent=True
+        if copy[HAPLOTYPE_I] == "haplotype1":
+            hap1ResolvedCNCount+=1
+        if copy[HAPLOTYPE_I] == "haplotype2":
+            hap2ResolvedCNCount+=1
         geneCNCount+=int(copy[CN_I])
     if (sexChrPresent and geneCNCount > EXPECTED_HAPLOID_CN) or \
        (not sexChrPresent and geneCNCount > EXPECTED_DIPLOID_CN) or \
-       (not args.diploid_input and len(geneList) >= 2) or \
-       (args.diploid_input and len(geneList) >= 3):
+       (not args.phased_input and len(geneList) >= 2) or \
+       (args.phased_input and len(geneList) >= 3) or \
+       (args.phased_input and hap1ResolvedCNCount >= 2) or \
+       (args.phased_input and hap2ResolvedCNCount >= 2):
         for copy in geneList:
             sys.stdout.write('\t'.join(copy)+'\n')
 

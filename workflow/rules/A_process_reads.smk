@@ -3,7 +3,9 @@ rule A01_linkAsm:
     input:
         asm=config["asm"]
     output:
-        asmlink="results/A01_asm.fasta"
+        asmlink="results/A01_pri_asm.fasta",
+        asmlinkU="results/A0U_pri_asm.fasta",
+        asmlinkU2="results/A0U_asm.fasta"
     params:
         workflowDir=workflow.basedir
     localrule: True
@@ -12,14 +14,20 @@ rule A01_linkAsm:
     shell:"""
         echo "##### A01_linkAsm" > {log}
         ln -s {input.asm} {params.workflowDir}/../{output.asmlink} 2>> {log}
+
+        echo "### Link using universal codes" >> {log}
+        ln -s {input.asm} {params.workflowDir}/../{output.asmlinkU} 2>> {log}
+        ln -s {input.asm} {params.workflowDir}/../{output.asmlinkU2} 2>> {log}
     """
 
 rule A02_faiIndexAsm:
     input:
-        asm="results/A01_asm.fasta"
+        asm="results/A01_pri_asm.fasta"
     output:
-        fai="results/A01_asm.fasta.fai",
-        lnk="results/A02_asm.fai"
+        fai="results/A01_pri_asm.fasta.fai",
+        lnk="results/A02_asm.fai",
+        lnkU="results/A0U_pri_asm.fasta.fai",
+        linkU2="results/A0U_asm.fasta.fai"
     params:
         workflowDir=workflow.basedir
     resources:
@@ -30,16 +38,22 @@ rule A02_faiIndexAsm:
     log: "logs/A02_indexAsm.log"
     benchmark: "benchmark/A02_indexAsm.tsv"
     shell:"""
+    {{
         echo "##### A02_indexAsm" > {log}
-        samtools faidx {input.asm} --fai-idx {output.fai} 2>> {log}
+        samtools faidx {input.asm} --fai-idx {output.fai}
 
         echo "### Create Link" >> {log}
         ln -s {params.workflowDir}/../{output.fai} {params.workflowDir}/../{output.lnk}
+
+        echo "### Link using universal codes" >> {log}
+        ln -s {params.workflowDir}/../{output.fai} {params.workflowDir}/../{output.lnkU}
+        ln -s {params.workflowDir}/../{output.fai} {params.workflowDir}/../{output.lnkU2}
+    }} 2>> {log}
     """
 
 rule A03_mmiIndexAsm:
     input:
-        hap="results/A01_asm.fasta"
+        hap="results/A01_pri_asm.fasta"
     output:
         mmi="results/A03_asm.mmi"
     params:
@@ -53,6 +67,7 @@ rule A03_mmiIndexAsm:
     log: "logs/A03_mmiIndexAsm.log"
     benchmark: "benchmark/A03_mmiIndexAsm.tsv"
     shell:"""
+    {{
         echo "##### A03_mmiIndexAsm" > {log}
         echo "### Determine MM2 Parameters" >> {log}
         if [ {params.read_type} = "CCS" ]
@@ -64,12 +79,13 @@ rule A03_mmiIndexAsm:
         echo "Minimap2 -x preset: $mm2_mode" >> {log}
 
         echo "### Create Minimap2 mmi Index" >> {log}
-        minimap2 -x $mm2_mode -d {output.mmi} {input.hap} -t {resources.cpus_per_task} 2>> {log}
+        minimap2 -x $mm2_mode -d {output.mmi} {input.hap} -t {resources.cpus_per_task}
+    }} 2>> {log}
     """
 
 rule A04_alignReads:
     input:
-        reads=lambda wildcards: bamFiles[wildcards.base],
+        reads=lambda wildcards: readFiles[wildcards.base],
         mmi=ancient("results/A03_asm.mmi")
     output:
         fastq=temp("results/A04_aligned/A04_{base}.fastq"),
@@ -140,9 +156,10 @@ rule A04_alignReads:
 
 rule A05_mergeReads:
     input:
-        aln=expand("results/A04_aligned/A04_{base}.bam", base=bamFiles.keys())
+        aln=expand("results/A04_aligned/A04_{base}.bam", base=readFiles.keys())
     output:
-        mrg=protected("results/A05_asm_reads.bam")
+        mrg=protected("results/A05_pri_asm_reads.bam"),
+        lnkU="results/A0U_pri_reads.bam"
     resources:
         mem_mb=cluster_mem_mb_small,
         cpus_per_task=cluster_cpus_per_task_small,
@@ -155,15 +172,19 @@ rule A05_mergeReads:
         echo "##### A05_mergeReads" > {log}
         numAdditionalThreads=$(echo "{resources.cpus_per_task} - 1" | bc)
         samtools merge {output.mrg} {input.aln} -@"$numAdditionalThreads"
+
+        echo "### Link using universal codes" >> {log}
+        ln -s {params.workflowDir}/../{output.mrg} {params.workflowDir}/../{output.lnkU}
     }} 2>> {log}
     """
 
 rule A06_baiIndexBam:
     input:
-        bam="results/A05_asm_reads.bam"
+        bam="results/A05_pri_asm_reads.bam"
     output:
-        bai="results/A05_asm_reads.bam.bai",
-        lnk="results/A06_asm_reads.bai"
+        bai="results/A05_pri_asm_reads.bam.bai",
+        lnk="results/A06_pri_asm_reads.bai",
+        lnkU="results/A0U_pri_reads.bam.bai"
     conda: "../envs/sda2.main.yml"
     log: "logs/A06_indexBam.log"
     benchmark: "benchmark/A06_indexBam.tsv"
@@ -182,5 +203,8 @@ rule A06_baiIndexBam:
 
         echo "### Create Link" >> {log}
         ln -s {params.workflowDir}/../{input.bam}.bai {params.workflowDir}/../{output.lnk}
+
+        echo "### Link using universal codes" >> {log}
+        ln -s {params.workflowDir}/../{output.bai} {params.workflowDir}/../{output.lnkU}
     }} 2>> {log}
     """

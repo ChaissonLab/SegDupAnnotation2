@@ -26,7 +26,7 @@ args = parser.parse_args()
 GENE_BED_I = 3
 OG_START_BED_I = 5
 OG_END_BED_I = 6
-CN_BED_I = 16
+CN_BED_I = 17
 
 # Create Graph
 print("-- Creating Graph", file=sys.stderr)

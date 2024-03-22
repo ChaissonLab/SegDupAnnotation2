@@ -14,7 +14,7 @@
 
 rule F01_GetGeneCoverage: # naive depths
     input:
-        depths="results/B01_hmm/B01_cov_bins.bed.gz", # presorted
+        depths=expand("results/B01_{hap}_hmm/B01_cov_bins.bed.gz", hap=OUTPUT_HAPLOTYPES),
         genes="results/E10_resolved_copies.bed" # presorted
     output:
         bed="results/F01_resolved_copies_cn.bed"
@@ -29,9 +29,10 @@ rule F01_GetGeneCoverage: # naive depths
     {{
         echo "##### F01_GetGeneCoverage" > {log}
         zcat {input.depths} | \
+            sort -k1,1 -k2,2n | \
             bedtools intersect -loj -sorted -a {input.genes} -b stdin | \
-            bedtools groupby -g 1,2,3,4,5,6,7,8,9,10,11,12,13,14 -c 18,18 -o mean,stdev 1> {output.bed}
-        # Out format: chr,start,end,gene,original_chr,original_start,original_end,strand,p_identity,p_accuracy,copy,exons_sizes,exon_starts,gm_alignment,depth_by_traditional(non-vcf),depth_by_traditional(non-vcf)-stdDev
+            bedtools groupby -g 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15 -c 19,19 -o mean,stdev 1> {output.bed}
+        # Out format: chr,start,end,gene,original_chr,original_start,original_end,strand,haplotype,p_identity,p_accuracy,copy,exons_sizes,exon_starts,gm_alignment,depth_by_traditional(non-vcf),depth_by_traditional(non-vcf)-stdDev
     }} 2>> {log}
     """
 
@@ -39,7 +40,7 @@ rule F01_GetGeneCoverage: # naive depths
 rule F02_LabelCopyNums:
     input:
         bed="results/F01_resolved_copies_cn.bed",
-        mean="results/B03_asm_mean_cov.txt"
+        mean="results/B06_coding_asm_mean_cov.txt"
     output:
         bed="results/F02_resolved_copies_cn_CNsLabeled.bed"
     localrule: True
@@ -58,14 +59,14 @@ rule F02_LabelCopyNums:
                                         {{return i}}}} \
                 BEGIN \
                     {{OFS="\\t"}} \
-                {{print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15/meanCov,$16/meanCov,round($15/meanCov)}}' 1> {output.bed}
+                {{print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16/meanCov,$17/meanCov,round($16/meanCov)}}' 1> {output.bed}
     }} 2>> {log}
     """
 
 # TODO verify that "." is 0 and not 1, I think it's 1 but maybe not all the time?
 rule F03_GetGeneHmmCoverage: # hmm vcf depths
     input:
-        hmm="results/B02_copy_number.bed.gz",
+        hmm=expand("results/B02_{hap}_copy_number.bed.gz", hap=OUTPUT_HAPLOTYPES),
         genes="results/F02_resolved_copies_cn_CNsLabeled.bed" # presorted
     output:
         hmm_noZero=temp("results/F03_copy_number_filtered.bed"),
@@ -81,12 +82,13 @@ rule F03_GetGeneHmmCoverage: # hmm vcf depths
     {{
         echo "##### F03_GetGeneHmmCoverage" > {log}
         zcat {input.hmm} | \
+            sort -k1,1 -k2,2n | \
             awk 'BEGIN {{OFS="\\t"}} ($4!=0) {{print}}' 1> {output.hmm_noZero}
         bedtools intersect -loj -a {input.genes} -b {output.hmm_noZero} -f 1 | \
             awk 'BEGIN {{OFS="\\t"}} \
-                {{if ($20==".") \
-                    {{$20=0}} \
-                print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$21}}' 1> {output.bed}
+                {{if ($21==".") \
+                    {{$21=0}} \
+                print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$22}}' 1> {output.bed}
     }} 2>> {log}
     """
 
@@ -108,17 +110,18 @@ rule F04_FilterOutMinDepth:
             awk -v minDepth={params.minDepth} ' \
                 BEGIN \
                     {{OFS="\\t"}} \
-                ($15>minDepth) \
+                ($16>minDepth) \
                     {{print}}' 1> {output.filt}
     }} 2>> {log}
     """
 
 # - F05 Filter by copy number or collapse presence:
-#          - autosomes > 2 copies
 #          - sex chr > 1 copy
 #          - autosomes + sex chr > 1 copy
+#          - autosomes >= 2 copies (if hap_unaware)
 #          - resolved duplication > 1 copy (if hap_unaware)
-#          - resolved duplication > 2 copies (if hap_aware)
+#          - autosomes >= 3 copies (if hap_aware)
+#          - resolved duplication > 1 copy per haplotype (if hap_aware)
 #          -> combine with rule MappedSamIdentityDups
 rule F05_FindDups:
     input:
@@ -143,13 +146,14 @@ rule F05_FindDups:
 
         if [ {params.hap_aware_mode} = "True" ]
         then
-            hap_aware_flag="--diploid_input"
+            hap_aware_flag="--phased_input"
+            echo "Haplotype aware mode activated." >> {log}
         else
             hap_aware_flag=""
         fi
 
         cat {input.bed} | \
-            sort -k4,4 -k11,11r -k5,5 -k6,6n -k7,7n -k1,1 -k2,2n -k3,3n | \
+            sort -k4,4 -k12,12r -k5,5 -k6,6n -k7,7n -k1,1 -k2,2n -k3,3n | \
             {params.workflowDir}/scripts/F05_SelectDuplications.py /dev/stdin --sex_chrs_list_filepath {input.hapChrs} "$hap_aware_flag" 1> {output.dups}
     }} 2>> {log}
     """

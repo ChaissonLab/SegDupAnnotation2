@@ -25,51 +25,51 @@ rule G01_AddHeaders:
         echo "##### G01_AddHeaders" > {log}
         echo "## Unfiltered File" >> {log}
         cat {input.dups_all} | \
-            sort -k4,4 -k11,11r -k5,5 -k6,6n -k7,7n -k1,1 -k2,2n -k3,3n | \
+            sort -k4,4 -k12,12r -k5,5 -k6,6n -k7,7n -k1,1 -k2,2n -k3,3n | \
             awk ' \
                 BEGIN \
                     {{OFS="\\t"; \
                     print "#chr","start","end","gene","orig_chr","orig_start","orig_end", \
-                    "strand","p_identity","p_accuracy","identity","p_gm_alignment", \
+                    "strand","haplotype","p_identity","p_accuracy","identity","p_gm_alignment", \
                     "depth","depth_stdev","copy_num","depth_by_vcf"}} \
-                {{print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$14,$15,$16,$17,$18}}' 1> {output.bed_all}
+                {{print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$15,$16,$17,$18,$19}}' 1> {output.bed_all}
 
         cat {input.dups_all} | \
             awk 'BEGIN {{OFS="\\t"}} \
-                {{split($12,exonSizes,","); \
-                print $1,$2,$3,$4,int($9*1000),$8,$2,$3,"255,0,0",length(exonSizes),$12,$13}}' 1> {output.bed12_all}
+                {{split($13,exonSizes,","); \
+                print $1,$2,$3,$4,int($10*1000),$8,$2,$3,"255,0,0",length(exonSizes),$13,$14}}' 1> {output.bed12_all}
         
         echo "## Grouped By Exon Overlap File" >> {log}
         cat {input.dups_exon} | \
-            sort -k4,4 -k11,11r -k5,5 -k6,6n -k7,7n -k1,1 -k2,2n -k3,3n | \
+            sort -k4,4 -k12,12r -k5,5 -k6,6n -k7,7n -k1,1 -k2,2n -k3,3n | \
             awk ' \
                 BEGIN \
                     {{OFS="\\t"; \
                     print "#chr","start","end","gene","orig_chr","orig_start","orig_end", \
-                    "strand","p_identity","p_accuracy","identity","p_gm_alignment", \
+                    "strand","haplotype","p_identity","p_accuracy","identity","p_gm_alignment", \
                     "depth","depth_stdev","copy_num","depth_by_vcf"}} \
-                {{print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$14,$15,$16,$17,$18}}' 1> {output.bed_exon}
+                {{print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$15,$16,$17,$18,$19}}' 1> {output.bed_exon}
 
         cat {input.dups_exon} | \
             awk 'BEGIN {{OFS="\\t"}} \
-                {{split($12,exonSizes,","); \
-                print $1,$2,$3,$4,int($9*1000),$8,$2,$3,"255,0,0",length(exonSizes),$12,$13}}' 1> {output.bed12_exon}
+                {{split($13,exonSizes,","); \
+                print $1,$2,$3,$4,int($10*1000),$8,$2,$3,"255,0,0",length(exonSizes),$13,$14}}' 1> {output.bed12_exon}
         
         echo "## Grouped By Any Overlap File" >> {log}
         cat {input.dups_any} | \
-            sort -k4,4 -k11,11r -k5,5 -k6,6n -k7,7n -k1,1 -k2,2n -k3,3n | \
+            sort -k4,4 -k12,12r -k5,5 -k6,6n -k7,7n -k1,1 -k2,2n -k3,3n | \
             awk ' \
                 BEGIN \
                     {{OFS="\\t"; \
                     print "#chr","start","end","gene","orig_chr","orig_start","orig_end", \
-                    "strand","p_identity","p_accuracy","identity","p_gm_alignment", \
+                    "strand","haplotype","p_identity","p_accuracy","identity","p_gm_alignment", \
                     "depth","depth_stdev","copy_num","depth_by_vcf"}} \
-                {{print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$14,$15,$16,$17,$18}}' 1> {output.bed_any}
+                {{print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$15,$16,$17,$18,$19}}' 1> {output.bed_any}
 
         cat {input.dups_any} | \
             awk 'BEGIN {{OFS="\\t"}} \
-                {{split($12,exonSizes,","); \
-                print $1,$2,$3,$4,int($9*1000),$8,$2,$3,"255,0,0",length(exonSizes),$12,$13}}' 1> {output.bed12_any}
+                {{split($13,exonSizes,","); \
+                print $1,$2,$3,$4,int($10*1000),$8,$2,$3,"255,0,0",length(exonSizes),$13,$14}}' 1> {output.bed12_any}
     }} 2>> {log}
     """
 
@@ -96,7 +96,7 @@ rule G02_GeneCountFact:
                 (NR>1) \
                     {{if (lastGene==$4) \
                         {{print $0,"multi"}} \
-                    nCopy=int($15); \
+                    nCopy=int($16); \
                     for (i=1; i<nCopy; i++) \
                         {{print $0,"collapse"}} \
                     lastGene=$4}}' 1> {output.fact}
@@ -124,13 +124,13 @@ rule G03_PerGeneCounts:
                 (NR==1) \
                     {{print "gene","depthNoramlizedToAsm","depth","measuredCov","copyCount","resolvedCount"}} \
                 (NR==2) \
-                    {{gene=$4; depth_sum=$12; count=$15; resolvedNum=1}} \
+                    {{gene=$4; depth_sum=$13; count=$16; resolvedNum=1}} \
                 (NR>2) \
                     {{if ($4==gene) \
-                        {{depth_sum+=$12; count+=$15; resolvedNum++}} \
+                        {{depth_sum+=$13; count+=$16; resolvedNum++}} \
                     else \
                         {{print gene,depth_sum,depth_sum*meanCov,sprintf("%1.f",depth_sum),count,resolvedNum; \
-                        gene=$4; depth_sum=$12; count=$15; resolvedNum=1}} }} \
+                        gene=$4; depth_sum=$13; count=$16; resolvedNum=1}} }} \
                 END \
                     {{print gene,depth_sum,depth_sum*meanCov,sprintf("%1.f",depth_sum),count,resolvedNum;}}' 1> {output.genes}
     }} 2>> {log}
@@ -140,7 +140,7 @@ rule G04_SummaryStats:
     input:
         fact="results/G02_dups{base}_fact.bed",
         mean="results/B03_asm_mean_cov.txt",
-        vcfDups="results/B02_copy_number.bed.gz"
+        vcfDups=expand("results/B02_{hap}_copy_number.bed.gz", hap=OUTPUT_HAPLOTYPES)
     output:
         summary="results/G04_summary_stats{base}.tsv"
     localrule: True
@@ -157,32 +157,32 @@ rule G04_SummaryStats:
             END {{print sum}}')" # sum of total collapsed bases (regardless of occurence within gene - calculated using hmm vcf file)
         collapsedBasesInGenes="$(cat {input.fact} | awk \
             'BEGIN {{OFS="\\t"; sum=0}} \
-            (NR>1 && $17=="collapse") \
-                {{sum+=($3-$2)*$13}} \
+            (NR>1 && $18=="collapse") \
+                {{sum+=($3-$2)*$14}} \
             END {{printf "%1.0i\\n", sum}}')" # sum of collapsed gene copies (excludes 'original' copies and resolved copies)
         resolvedBasesinCollapsedGenes="$(cat {input.fact} | awk \
             'BEGIN {{OFS="\\t"; sum=0}} \
-            (NR>1 && $17=="collapse") \
+            (NR>1 && $18=="collapse") \
                 {{sum+=($3-$2)}} \
             END {{printf "%1.0i\\n", sum}}')" # sum of collapsed gene copies (excludes 'original' copies and resolved copies)
         resolvedBases="$(cat {input.fact} | awk \
             'BEGIN {{OFS="\\t"; sum=0}} \
-            (NR>1 && $17=="multi") \
+            (NR>1 && $18=="multi") \
                 {{sum+=($3-$2)}} \
             END {{print sum}}')" # sum of resolved copies of genes (excludes 'original' copies and collapses)
         resolvedGeneCount="$(cat {input.fact} | awk \
             'BEGIN {{OFS="\\t"}} \
-            (NR>1 && $17=="multi") \
+            (NR>1 && $18=="multi") \
                 {{print $4}}' | \
             uniq | wc -l)"
         collapsedGeneCount="$(cat {input.fact} | awk \
             'BEGIN {{OFS="\\t"}} \
-            (NR>1 && $17=="collapse") \
+            (NR>1 && $18=="collapse") \
                 {{print $4}}' | \
             uniq | wc -l)"
         collapsedDuplicationCount="$(cat {input.fact} | awk \
             'BEGIN {{OFS="\\t"; count=0}} \
-            (NR>1 && $17=="collapse") \
+            (NR>1 && $18=="collapse") \
                 {{count+=1}} \
             END {{print count}}')"
 
@@ -233,7 +233,7 @@ rule G05_SummaryFigs:
             awk 'BEGIN {{OFS="\\t"; gene=""; gene_num=0}} \
                 (NR==1) \
                     {{print "gene_num",$0}} \
-                (NR>1 && $14<=1) \
+                (NR>1 && $15<=1) \
                     {{if (gene!=$4) \
                         {{geneNum+=1}} \
                     gene=$4; \
@@ -243,7 +243,7 @@ rule G05_SummaryFigs:
             awk 'BEGIN {{OFS="\\t"; gene=""; gene_num=0}} \
                 (NR==1) \
                     {{print "gene_num",$0}} \
-                (NR>1 && $14>1) \
+                (NR>1 && $15>1) \
                     {{if (gene!=$4) \
                         {{geneNum+=1}} \
                     gene=$4; \
