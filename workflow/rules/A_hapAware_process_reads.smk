@@ -194,7 +194,7 @@ rule A05H_mergeReads:
     input:
         aln=expand("results/A04H_hap{{hapNum}}_aligned/A04H_{base}.bam", base=readFiles.keys())
     output:
-        mrg=protected("results/A05H_hap{hapNum}_asm_includesAutozygousRgns.bam")
+        mrg=temp("results/A05H_hap{hapNum}_asm_includesAutozygousRgns.bam")
     resources:
         mem_mb=cluster_mem_mb_small,
         cpus_per_task=cluster_cpus_per_task_small,
@@ -217,10 +217,10 @@ rule A06H_partitionReads:
         hap1_bam="results/A05H_hap1_asm_includesAutozygousRgns.bam",
         hap2_bam="results/A05H_hap2_asm_includesAutozygousRgns.bam"
     output:
-        hap1_only_bam="results/A06H_hap1_reads_only.bam",
-        hap2_only_bam="results/A06H_hap2_reads_only.bam",
-        hap1_auto_bam="results/A06H_hap1_autozygous_reads_only.bam",
-        hap2_auto_bam="results/A06H_hap2_autozygous_reads_only.bam",
+        hap1_only_bam=temp("results/A06H_hap1_reads_only.bam"),
+        hap2_only_bam=temp("results/A06H_hap2_reads_only.bam"),
+        hap1_auto_bam=temp("results/A06H_hap1_autozygous_reads_only.bam"),
+        hap2_auto_bam=temp("results/A06H_hap2_autozygous_reads_only.bam"),
         unmapped_bam="results/A06H_hapX_unmapped_reads_only.bam"
     conda: "../envs/sda2.main.yml"
     log: "logs/A06H_partitionReads.log"
@@ -243,8 +243,8 @@ rule A07H_disperseAutozygousReads:
         hap1_auto_bam="results/A06H_hap1_autozygous_reads_only.bam",
         hap2_auto_bam="results/A06H_hap2_autozygous_reads_only.bam"
     output:
-        hap1_reads="results/A07H_hap1_reads_unsorted.bam",
-        hap2_reads="results/A07H_hap2_reads_unsorted.bam"
+        hap1_reads=temp("results/A07H_hap1_reads_unsorted.bam"),
+        hap2_reads=temp("results/A07H_hap2_reads_unsorted.bam")
     conda: "../envs/sda2.main.yml"
     log: "logs/A07H_disperseAutozygousReads.log"
     benchmark: "benchmark/A07H_disperseAutozygousReads.tsv"
@@ -263,7 +263,7 @@ rule A08H_sortReads:
     input:
         bam="results/A07H_hap{hapNum}_reads_unsorted.bam"
     output:
-        sorted_bam="results/A08H_hap{hapNum}_reads.bam",
+        sorted_bam=protected("results/A08H_hap{hapNum}_reads.bam"),
         sorted_bam_link="results/A0U_hap{hapNum}_reads.bam"
     params:
         read_type=config["read_type"],

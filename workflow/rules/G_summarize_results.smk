@@ -211,7 +211,7 @@ rule G05_SummaryFigs:
     params:
         workflowDir=workflow.basedir
     localrule: True
-    conda: "../envs/sda2.r.yml"
+    conda: "../envs/sda2.main.yml"
     log: "logs/G05_SummaryFigs{base}.log"
     benchmark: "benchmark/G05_SummaryFigs{base}.tsv"
     shell:"""

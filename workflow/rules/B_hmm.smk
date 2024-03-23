@@ -1,41 +1,88 @@
-rule B01_RunHmm:
-    input:
-        asm="results/A0U_{hap}_asm.fasta",
-        fai="results/A0U_{hap}_asm.fasta.fai",
-        bam=ancient("results/A0U_{hap}_reads.bam"),
-        bai="results/A0U_{hap}_reads.bam.bai" # TODO necessary?
-    output:
-       vcf="results/B01_{hap}_hmm/B01_copy_number.vcf",
-       cov=temp("results/B01_{hap}_hmm/B01_cov_bins.bed"),
-       covz="results/B01_{hap}_hmm/B01_cov_bins.bed.gz",
-       tbi="results/B01_{hap}_hmm/B01_cov_bins.bed.gz.tbi", # TODO is this useful?
-       snvs="results/B01_{hap}_hmm/B01_snvs.tsv"
-    resources:
-        mem_mb=cluster_mem_mb_large,
-        cpus_per_task=cluster_cpus_per_task_medium,
-        runtime=config["cluster_runtime_long"]
-    conda: "../envs/sda2.hmcnc.yml"
-    log: "logs/B01_RunHmm.{hap}.log"
-    benchmark: "benchmark/B01_RunHmm.{hap}.tsv"
-    shell:"""
-    {{
-        echo "##### B01_RunHmm - {wildcards.hap}" > {log}
-        echo "### Run HMM" >> {log}
-        hmmcnc {input.asm} -a {input.bam} -t {resources.cpus_per_task} -B {output.cov} -S {output.snvs} -o {output.vcf}
+if config["flag_force_hmm"]:
+    rule B01_RunHmm:
+        input:
+            asm="results/A0U_{hap}_asm.fasta",
+            fai="results/A0U_{hap}_asm.fasta.fai",
+            bam=ancient("results/A0U_{hap}_reads.bam"),
+            bai="results/A0U_{hap}_reads.bam.bai" # TODO necessary?
+        output:
+            vcf="results/B01_{hap}_hmm/B01_copy_number.vcf",
+            cov=temp("results/B01_{hap}_hmm/B01_cov_bins.bed"),
+            covz="results/B01_{hap}_hmm/B01_cov_bins.bed.gz",
+            tbi="results/B01_{hap}_hmm/B01_cov_bins.bed.gz.tbi",
+            snvs="results/B01_{hap}_hmm/B01_snvs.tsv"
+        resources:
+            mem_mb=cluster_mem_mb_large,
+            cpus_per_task=cluster_cpus_per_task_medium,
+            runtime=config["cluster_runtime_long"]
+        conda: "../envs/sda2.hmcnc.yml"
+        log: "logs/B01_RunHmm.{hap}.log"
+        benchmark: "benchmark/B01_RunHmm.{hap}.tsv"
+        shell:"""
+        {{
+            echo "##### B01_RunHmm - {wildcards.hap}" > {log}
+            echo "### HMM ENABLED" >> {log}
+            echo "### Run HMM" >> {log}
+            hmmcnc {input.asm} -a {input.bam} -t {resources.cpus_per_task} -B {output.cov} -S {output.snvs} -o {output.vcf}
 
-        echo "### Sort and Index Output" >> {log}
-        cat {output.cov} | \
-            sort -k1,1 -k2,2n -k3,3n | \
-            bgzip -c 1> {output.covz}
-        tabix {output.covz}
-    }} 2>> {log}
-    """
+            echo "### Sort and Index Output" >> {log}
+            cat {output.cov} | \
+                sort -k1,1 -k2,2n -k3,3n | \
+                bgzip -c 1> {output.covz}
+            tabix {output.covz}
+        }} 2>> {log}
+        """
+else:
+    rule B07_CalcDepthInBins:
+        input:
+            asm="results/A0U_{hap}_asm.fasta",
+            fai="results/A0U_{hap}_asm.fasta.fai",
+            bam=ancient("results/A0U_{hap}_reads.bam")
+        output:
+            cov=temp("results/B01_{hap}_hmm/B01_cov_bins.bed"),
+            covz="results/B01_{hap}_hmm/B01_cov_bins.bed.gz",
+            tbi="results/B01_{hap}_hmm/B01_cov_bins.bed.gz.tbi",
+            bed_tmp=temp("results/B02_{hap}_copy_number.bed.gz") # created for compatibility only, ignore this file
+        resources:
+            mem_mb=cluster_mem_mb_large,
+            cpus_per_task=cluster_cpus_per_task_baby,
+            runtime=config["cluster_runtime_long"]
+        conda: "../envs/sda2.main.yml"
+        log: "logs/B07_CalcDepthInBins.{hap}.log"
+        benchmark: "benchmark/B07_CalcDepthInBins.{hap}.tsv"
+        shell:"""
+        {{
+            echo "##### B07_CalcDepthInBins - {wildcards.hap}" > {log}
+            echo "### HMM DISABLED" >> {log}
+            echo "### Calculate Depth" >> {log}
+            samtools mpileup -a -B -f {input.asm} {input.bam} | \
+                awk 'BEGIN {{OFS="\\t"; lastChr=""; lastStart=1}} \
+                    (lastChr!=$1) \
+                        {{lastChr=$1; lastStart=1; depth=0}} \
+                    (lastChr==$1 && $2>=lastStart+100) \
+                        {{print lastChr,lastStart,lastStart+99,int(depth/100); \
+                        lastStart+=100; depth=0}} \
+                    (lastChr==$1 && $2<lastStart+100) \
+                        {{depth+=$4}}' 1> {output.cov}
+            
+            echo "### Sort and Index Output" >> {log}
+            cat {output.cov} | \
+                sort -k 1,1 -k2,2n -k3,3n | \
+                bgzip -c 1> {output.covz}
+            tabix {output.covz}
+
+            echo "### Create duplicate bed for compatibility" >> {log}
+            zcat {output.covz} | \
+                awk 'BEGIN {{OFS="\\t"}} {{print $0,$4}}' | \
+                bgzip -c 1> {output.bed_tmp}
+        }} 2>> {log}
+        """
 
 rule B02_GetCN:
     input:
-       vcf="results/B01_{hap}_hmm/B01_copy_number.vcf"
+        vcf="results/B01_{hap}_hmm/B01_copy_number.vcf"
     output:
-       bed="results/B02_{hap}_copy_number.bed.gz"
+        bed="results/B02_{hap}_copy_number.bed.gz"
     params:
         workflowDir=workflow.basedir
     localrule: True
