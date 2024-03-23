@@ -68,7 +68,7 @@
             "default": []
         },
         "flag_autodetect_haploid_chrs": {
-            "description": "When true autodetects whether a chromosome is haploid or diploid to inform correct gene duplication accounting in rule F05_FindDups. Rule B05 detects haploid chromosome by looking for chromosomes with half the mean depth of the assembly. Chromosomes smaller than 10 Mb will not be selected as haploid chromosomes.",
+            "description": "When true autodetects whether a chromosome is haploid or diploid to inform correct gene duplication accounting in rule F05_FindDups. Rule B05 detects haploid chromosomes by looking for chromosomes with half the mean depth of the assembly. Chromosomes smaller than 10 Mb will not be selected as haploid chromosomes.",
             "type": "boolean",
             "examples": [ true, false],
             "default": false
@@ -121,6 +121,12 @@
             "type": "boolean",
             "examples": [ true, false],
             "default": true
+        },
+        "flag_force_hmm": {
+            "description": "When true, uses the hidden markov copy number caller instead of samtools' mpileup to determine depth in 100 bp reads. This is not a recommended option, and may fail if no reads map to a single chromosome/scaffold.",
+            "type": "boolean",
+            "examples": [ true, false],
+            "default": false
         },
         "flag_assume_clear_and_unique_gene_codes": {
             "description": "When false, assumes gene model fasta headers are in default RefSeq format, and thus renames all headers based on gene symbol in parenthesis at end of header line.",
