@@ -63,6 +63,7 @@ results/G01\_dups\_\<isoform_grouping_type\>.bed
 | orig\_start | ^ |
 | orig\_end | ^ |
 | strand | Strand on which gene copy is on: 0 for 'Original', '1' for reverse. |
+| haplotype | The haplotype of the hit. This requires 'haplotype1' or 'haplotype2' to be explicitly stated in the chromosome/scaffold/contig name. |
 | p\_identity | Similarity to 'Original' gene calculated as: #matches/(#matches+#mismatches+#insertion\_events+#deletion\_events) |
 | p\_accuracy | Similarity to 'Original' gene calculated as : #matches/(#matches+#mismatches+#insertions+#deletions) |
 | identity | Notes whether copy is the 'Original' or a resolved 'Copy'. |
