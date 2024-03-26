@@ -1,5 +1,5 @@
 # Flow of this smk file:
-# - E01 Map resolved originals to asm (out: paf)
+# - E01 Map resolved originals to asm (out: paf). And add Haplotype tag.
 # - E02 Needleman Wunch alignment of copy hits to original (calc cigar/matches/mismatches/etc)
 # - E02 Calculate resolved copy identity/accuracy
 # - E03 Remove hits that intersect with Flagger called regions
@@ -34,9 +34,9 @@ rule E01_GetResolvedCopiesPaf:
         echo "### Add haplotype tag"
         cat {output.paf_tmp} | \
             awk 'BEGIN {{OFS="\\t"}} \
-                {{if ($1~/haplotype1/) \
+                {{if ($6~/haplotype1/) \
                     {{print $0,"hp:Z:haplotype1"}} \
-                else if ($1~/haplotype2/) \
+                else if ($6~/haplotype2/) \
                     {{print $0,"hp:Z:haplotype2"}} \
                 else \
                     {{print $0}} }}' 1> {output.paf}
