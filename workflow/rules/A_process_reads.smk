@@ -3,9 +3,9 @@ rule A01_linkAsm:
     input:
         asm=config["asm"]
     output:
-        asmlink="results/A01_pri_asm.fasta",
-        asmlinkU="results/A0U_pri_asm.fasta",
-        asmlinkU2="results/A0U_asm.fasta"
+        asmlnk="results/A01_pri_asm.fasta",
+        asmlnkU="results/A0U_pri_asm.fasta",
+        asmlnkU2="results/A0U_asm.fasta"
     params:
         workflowDir=workflow.basedir
     localrule: True
@@ -13,11 +13,11 @@ rule A01_linkAsm:
     log: "logs/A01_linkAsm.log"
     shell:"""
         echo "##### A01_linkAsm" > {log}
-        ln -s {input.asm} {params.workflowDir}/../{output.asmlink} 2>> {log}
+        ln -s {input.asm} {params.workflowDir}/../{output.asmlnk} 2>> {log}
 
         echo "### Link using universal codes" >> {log}
-        ln -s {input.asm} {params.workflowDir}/../{output.asmlinkU} 2>> {log}
-        ln -s {input.asm} {params.workflowDir}/../{output.asmlinkU2} 2>> {log}
+        ln -s {input.asm} {params.workflowDir}/../{output.asmlnkU} 2>> {log}
+        ln -s {input.asm} {params.workflowDir}/../{output.asmlnkU2} 2>> {log}
     """
 
 rule A02_faiIndexAsm:
@@ -27,7 +27,7 @@ rule A02_faiIndexAsm:
         fai="results/A01_pri_asm.fasta.fai",
         lnk="results/A02_asm.fai",
         lnkU="results/A0U_pri_asm.fasta.fai",
-        linkU2="results/A0U_asm.fasta.fai"
+        lnkU2="results/A0U_asm.fasta.fai"
     params:
         workflowDir=workflow.basedir
     resources:
