@@ -174,14 +174,6 @@ else:
                 # if copyNum of any copy > 1 or 2 (depending on if on given haploid chromosome) keep gene group
                 # if resolved copies present keep gene group
 
-            if [ {params.hap_aware_mode} = "True" ]
-            then
-                hap_aware_flag="--phased_input"
-                echo "Haplotype aware mode activated." >> {log}
-            else
-                hap_aware_flag=""
-            fi
-
             cat {input.bed} | \
                 sort -k4,4 -k12,12r -k5,5 -k6,6n -k7,7n -k1,1 -k2,2n -k3,3n | \
                 {params.workflowDir}/scripts/F05_SelectDuplications.py /dev/stdin --sex_chrs_list_filepath {input.hapChrs} 1> {output.dups}
