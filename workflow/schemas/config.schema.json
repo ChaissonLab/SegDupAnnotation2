@@ -51,7 +51,7 @@
             "examples": [ "CCS", "CLR" ]
         },
         "haploid_chrs": {
-            "description": "List of haploid/sex chromosome names in given assembly. Remember Human female genomes have diploid X chromosomes. Will only be used if flag_autodetect_haloid_chrs is not explicitly set to 'true'.",
+            "description": "List of haploid/sex chromosome names in given assembly. Remember Human female genomes have diploid X chromosomes. Will only be used if flag_autodetect_haloid_chrs is not explicitly set to 'true'. Only helpful in haplotype-unaware mode to ensure collapsed duplications on haploid chromosomes are detected appropriately.",
             "type": "array",
             "items": {
                 "type": "string"
@@ -68,7 +68,7 @@
             "default": []
         },
         "flag_autodetect_haploid_chrs": {
-            "description": "When true autodetects whether a chromosome is haploid or diploid to inform correct gene duplication accounting in rule F05_FindDups. Rule B05 detects haploid chromosomes by looking for chromosomes with half the mean depth of the assembly. Chromosomes smaller than 10 Mb will not be selected as haploid chromosomes.",
+            "description": "When true autodetects whether a chromosome is haploid or diploid to inform correct gene duplication accounting in rule F05_FindDups. Rule B05 detects haploid chromosomes by looking for chromosomes with half the mean depth of the assembly. Chromosomes smaller than 10 Mb will not be selected as haploid chromosomes. Only helpful in haplotype-unaware mode to ensure collapsed duplications on haploid chromosomes are detected appropriately.",
             "type": "boolean",
             "examples": [ true, false],
             "default": false

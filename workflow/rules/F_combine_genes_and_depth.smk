@@ -9,6 +9,7 @@
 #          - autosomes + sex chr > 1 copy
 #          - resolved duplication > 1 copy (hap_unaware)
 #          - resolved duplication > 2 copies (hap_aware)
+#          - resolved duplication > 1 copy on either haplotype (hap_aware)
 # - F06 Group Isoforms that have any overlap
 # - F07 Group Isoforms by label created in E09
 
@@ -115,48 +116,77 @@ rule F04_FilterOutMinDepth:
     }} 2>> {log}
     """
 
-# - F05 Filter by copy number or collapse presence:
-#          - sex chr > 1 copy
-#          - autosomes + sex chr > 1 copy
-#          - autosomes >= 2 copies (if hap_unaware)
-#          - resolved duplication > 1 copy (if hap_unaware)
-#          - autosomes >= 3 copies (if hap_aware)
-#          - resolved duplication > 1 copy per haplotype (if hap_aware)
-#          -> combine with rule MappedSamIdentityDups
-rule F05_FindDups:
-    input:
-        bed="results/F04_resolved_copies_cn2_minDepthFilt.bed",
-        hapChrs="results/B05_haploid_chrs.txt"
-    output:
-        dups="results/F05_dups_allFams.bed"
-    params:
-        workflowDir=workflow.basedir,
-        hap_aware_mode=hap_aware_mode
-    localrule: True
-    conda: "../envs/sda2.main.yml"
-    log: "logs/F05_FindDups.log"
-    benchmark: "benchmark/F05_FindDups.tsv"
-    shell:"""
-    {{
-        echo "##### F05_FindDups" > {log}
-        # sort so OG before copies and all genes adjacent
-        # traverse and isolate by gene groups
-            # if copyNum of any copy > 1 or 2 keep gene group
-            # if resolved copies present keep gene group
-
-        if [ {params.hap_aware_mode} = "True" ]
-        then
-            hap_aware_flag="--phased_input"
+if hap_aware_mode:
+    # - F05H Filter by copy number or collapse presence:
+    #          - >= 3 copies (collapsed plus resolved)
+    #          - >= 1 collapsed copy
+    #          - resolved duplication > 1 copy on either haplotype
+    rule F05H_FindDups:
+        input:
+            bed="results/F04_resolved_copies_cn2_minDepthFilt.bed"
+        output:
+            dups="results/F05_dups_allFams.bed"
+        params:
+            workflowDir=workflow.basedir
+        localrule: True
+        conda: "../envs/sda2.main.yml"
+        log: "logs/F05H_FindDups.log"
+        benchmark: "benchmark/F05H_FindDups.tsv"
+        shell:"""
+        {{
+            echo "##### F05H_FindDups" > {log}
             echo "Haplotype aware mode activated." >> {log}
-        else
-            hap_aware_flag=""
-        fi
+            # sort so OG before copies and all genes adjacent
+            # traverse and isolate by gene groups
+                # if copyNum of any copy > 1 keep gene group
+                # if resolved copies present keep gene group
 
-        cat {input.bed} | \
-            sort -k4,4 -k12,12r -k5,5 -k6,6n -k7,7n -k1,1 -k2,2n -k3,3n | \
-            {params.workflowDir}/scripts/F05_SelectDuplications.py /dev/stdin --sex_chrs_list_filepath {input.hapChrs} "$hap_aware_flag" 1> {output.dups}
-    }} 2>> {log}
-    """
+            cat {input.bed} | \
+                sort -k4,4 -k12,12r -k5,5 -k6,6n -k7,7n -k1,1 -k2,2n -k3,3n | \
+                {params.workflowDir}/scripts/F05_SelectDuplications.py /dev/stdin --phased_input 1> {output.dups}
+        }} 2>> {log}
+        """
+else:
+    # - F05 Filter by copy number or collapse presence:
+    #          - sex chr > 1 copy
+    #          - autosomes + sex chr > 1 copy
+    #          - autosomes >= 2 copies
+    #          - resolved duplication > 1 copy
+    #          - collapsed copy >= 1
+    rule F05_FindDups:
+        input:
+            bed="results/F04_resolved_copies_cn2_minDepthFilt.bed",
+            hapChrs="results/B05_haploid_chrs.txt"
+        output:
+            dups="results/F05_dups_allFams.bed"
+        params:
+            workflowDir=workflow.basedir
+        localrule: True
+        conda: "../envs/sda2.main.yml"
+        log: "logs/F05_FindDups.log"
+        benchmark: "benchmark/F05_FindDups.tsv"
+        shell:"""
+        {{
+            echo "##### F05_FindDups" > {log}
+            echo "Haplotype aware mode disabled." >> {log}
+            # sort so OG before copies and all genes adjacent
+            # traverse and isolate by gene groups
+                # if copyNum of any copy > 1 or 2 (depending on if on given haploid chromosome) keep gene group
+                # if resolved copies present keep gene group
+
+            if [ {params.hap_aware_mode} = "True" ]
+            then
+                hap_aware_flag="--phased_input"
+                echo "Haplotype aware mode activated." >> {log}
+            else
+                hap_aware_flag=""
+            fi
+
+            cat {input.bed} | \
+                sort -k4,4 -k12,12r -k5,5 -k6,6n -k7,7n -k1,1 -k2,2n -k3,3n | \
+                {params.workflowDir}/scripts/F05_SelectDuplications.py /dev/stdin --sex_chrs_list_filepath {input.hapChrs} 1> {output.dups}
+        }} 2>> {log}
+        """
 
 rule F06_GroupIsoformsByAnyOverlap:
     input:
