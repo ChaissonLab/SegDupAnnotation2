@@ -32,6 +32,25 @@ if config["flag_force_hmm"]:
             tabix {output.covz}
         }} 2>> {log}
         """
+    rule B02_GetCN:
+        input:
+            vcf="results/B01_{hap}_hmm/B01_copy_number.vcf"
+        output:
+            bed="results/B02_{hap}_copy_number.bed.gz"
+        params:
+            workflowDir=workflow.basedir
+        localrule: True
+        conda: "../envs/sda2.main.yml"
+        log: "logs/B02_GetCN.{hap}.log"
+        benchmark: "benchmark/B02_GetCN.{hap}.tsv"
+        shell:"""
+        {{
+            echo "##### B02_GetCN - {wildcards.hap}" > {log}
+            {params.workflowDir}/scripts/B02_CovVcfToBed.py {input.vcf} | \
+                gzip -c 1> {output.bed}
+            # Out format: chr,start,end,copy_num,read_depth
+        }} 2>> {log}
+        """
 else:
     rule B07_CalcDepthInBins:
         input:
@@ -77,26 +96,6 @@ else:
                 bgzip -c 1> {output.bed_tmp}
         }} 2>> {log}
         """
-
-rule B02_GetCN:
-    input:
-        vcf="results/B01_{hap}_hmm/B01_copy_number.vcf"
-    output:
-        bed="results/B02_{hap}_copy_number.bed.gz"
-    params:
-        workflowDir=workflow.basedir
-    localrule: True
-    conda: "../envs/sda2.main.yml"
-    log: "logs/B02_GetCN.{hap}.log"
-    benchmark: "benchmark/B02_GetCN.{hap}.tsv"
-    shell:"""
-    {{
-        echo "##### B02_GetCN - {wildcards.hap}" > {log}
-        {params.workflowDir}/scripts/B02_CovVcfToBed.py {input.vcf} | \
-            gzip -c 1> {output.bed}
-        # Out format: chr,start,end,copy_num,read_depth
-    }} 2>> {log}
-    """
 
 rule B03_CalcMeanCov:
     input:
