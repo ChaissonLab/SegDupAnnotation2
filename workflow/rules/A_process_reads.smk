@@ -160,6 +160,8 @@ rule A05_mergeReads:
     output:
         mrg=protected("results/A05_pri_asm_reads.bam"),
         lnkU="results/A0U_pri_reads.bam"
+    params:
+        workflowDir=workflow.basedir
     resources:
         mem_mb=cluster_mem_mb_small,
         cpus_per_task=cluster_cpus_per_task_small,
