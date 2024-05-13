@@ -1,26 +1,43 @@
 # HAPLOTYPE AWARE MODE ACTIVE
-rule A01H_linkandUnionAsm:
+rule A01H_linkAndLabelAsmHeaders:
     input:
         hap1=config["asm"],
         hap2=config["hap2"]
     output:
-        hap1lnk="results/A01H_hap1_asm.fasta",
-        hap2lnk="results/A01H_hap2_asm.fasta",
+        hap1="results/A01H_hap1_asm.fasta",
+        hap2="results/A01H_hap2_asm.fasta",
         hap1lnkU="results/A0U_hap1_asm.fasta",
         hap2lnkU="results/A0U_hap2_asm.fasta",
     params:
         workflowDir=workflow.basedir
     localrule: True
     conda: "../envs/sda2.main.yml"
-    log: "logs/A01H_linkandUnionAsm.log"
+    log: "logs/A01H_linkAndLabelAsmHeaders.log"
     shell:"""
-        echo "##### A01H_linkandUnionAsm" > {log}
-        ln -s {input.hap1} {params.workflowDir}/../{output.hap1lnk} 2>> {log}
-        ln -s {input.hap2} {params.workflowDir}/../{output.hap2lnk} 2>> {log}
-
+        echo "##### A01H_linkAndLabelAsmHeaders" > {log}
+        echo "### Add in haplotype label to assembly headers if absent" >> {log}
+        cat {input.hap1} | \
+            awk 'BEGIN {{OFS="\\t"}} \
+                (/^>/) \
+                    {{if ($0~/haplotype1/) \
+                        {{print $0}}
+                    else \
+                        {{print ">haplotype1-" substr($0,2)}}}} \
+                (!/^>/) \
+                    {{print $0}}' > {output.hap1}
+        cat {input.hap2} | \
+            awk 'BEGIN {{OFS="\\t"}} \
+                (/^>/) \
+                    {{if ($0~/haplotype2/) \
+                        {{pring $0}}
+                    else \
+                        {{print ">haplotype2-" substr($0,2)}}}} \
+                (!/^>/) \
+                    {{print $0}}' > {output.hap2}
+        
         echo "### Link using universal codes" >> {log}
-        ln -s {input.hap1} {params.workflowDir}/../{output.hap1lnkU} 2>> {log}
-        ln -s {input.hap2} {params.workflowDir}/../{output.hap2lnkU} 2>> {log}
+        ln -s {output.hap1} {params.workflowDir}/../{output.hap1lnkU} 2>> {log}
+        ln -s {output.hap2} {params.workflowDir}/../{output.hap2lnkU} 2>> {log}
         """
 
 rule A02H_faiIndexAsm:
