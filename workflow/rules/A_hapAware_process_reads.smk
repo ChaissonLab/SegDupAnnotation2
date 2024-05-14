@@ -4,10 +4,10 @@ rule A01H_linkAndLabelAsmHeaders:
         hap1=config["asm"],
         hap2=config["hap2"]
     output:
-        hap1="results/A01H_hap1_asm.fasta",
-        hap2="results/A01H_hap2_asm.fasta",
+        hap1out= "results/A01H_hap1_asm.fasta",
+        hap2out= "results/A01H_hap2_asm.fasta",
         hap1lnkU="results/A0U_hap1_asm.fasta",
-        hap2lnkU="results/A0U_hap2_asm.fasta",
+        hap2lnkU="results/A0U_hap2_asm.fasta"
     params:
         workflowDir=workflow.basedir
     localrule: True
@@ -24,7 +24,7 @@ rule A01H_linkAndLabelAsmHeaders:
                     else \
                         {{print ">haplotype1-" substr($0,2)}}}} \
                 (!/^>/) \
-                    {{print $0}}' > {output.hap1}
+                    {{print $0}}' > {output.hap1out}
         cat {input.hap2} | \
             awk 'BEGIN {{OFS="\\t"}} \
                 (/^>/) \
@@ -33,11 +33,11 @@ rule A01H_linkAndLabelAsmHeaders:
                     else \
                         {{print ">haplotype2-" substr($0,2)}}}} \
                 (!/^>/) \
-                    {{print $0}}' > {output.hap2}
+                    {{print $0}}' > {output.hap2out}
         
         echo "### Link using universal codes" >> {log}
-        ln -s {output.hap1} {params.workflowDir}/../{output.hap1lnkU} 2>> {log}
-        ln -s {output.hap2} {params.workflowDir}/../{output.hap2lnkU} 2>> {log}
+        ln -s {params.workflowDir}/../{output.hap1out} {params.workflowDir}/../{output.hap1lnkU} 2>> {log}
+        ln -s {params.workflowDir}/../{output.hap2out} {params.workflowDir}/../{output.hap2lnkU} 2>> {log}
         """
 
 rule A02H_faiIndexAsm:
