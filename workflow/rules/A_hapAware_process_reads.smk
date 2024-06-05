@@ -29,7 +29,7 @@ rule A01H_linkAndLabelAsmHeaders:
             awk 'BEGIN {{OFS="\\t"}} \
                 (/^>/) \
                     {{if ($0~/haplotype2/) \
-                        {{pring $0}}
+                        {{print $0}}
                     else \
                         {{print ">haplotype2-" substr($0,2)}}}} \
                 (!/^>/) \
