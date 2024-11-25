@@ -25,7 +25,7 @@ MIN_OVERLAP = 10 # remove edges in exon overlap graph if exon overlap is less th
 # Parse Input
 print("---- Running E09_NetworkFilter.py", file=sys.stderr)
 print("-- Parsing Input", file=sys.stderr)
-parser = argparse.ArgumentParser(description="Identify consensus isoforms from isoform clusters using the Leiden community detection algorithm on hits whose exons overlap.")
+parser = argparse.ArgumentParser(description="Identify consensus isoforms from isoform clusters using the Leiden community detection algorithm on hits whose exons overlap on the same strand.")
 parser.add_argument("pafxe_filepath", type=pathlib.Path, help="Input pafxe file. (Including comma separated list of exon lengths, then a comma separated list of exon start positions.)")
 parser.add_argument("communities_filepath", type=pathlib.Path, help="Output tab separated file of consensus isoform. (The first column is the consensus isoform. The second column has a comma separated list of isoforms in the consensus isoform's family.) The list in the 2nd column is sorted by largest to smallest isoforms in length.")
 parser.add_argument("-u","--uncharacterized_gene_name_prefix", help="Prefix of uncharacterized genes. Used to deprioritize uncharacterized genes when identifying a consensus gene in a gene community/family.")
@@ -156,9 +156,9 @@ for geneNum in range(numTotalCopies):
 # c1=chrom_gene1, r1=strand_gene1, e1=end_gene1,
 # c2=chrom_gene2, r2=strand_gene2, s2=start_gene2
 def overlap (c1,r1,e1,c2,r2,s2):
-    return (c1==c2 and s2<=e1)
-    # formerly this function separated out strands on the same chr too, but this is no longer true
-    #return (c1==c2 and r1==r2 and s2<=e1)
+    return (c1==c2 and r1==r2 and s2<=e1)
+    #return (c1==c2 and s2<=e1)
+    # formerly this function was strand agnostic
 
 # Function overlapDist: returns magnitude of overlap in bases of
 # two genes. Assumes start position of first gene is less than
