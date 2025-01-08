@@ -19,7 +19,7 @@ min_version("7.25.0") # Created using Snakemake v7.32.4
 configfile: "config/sd_analysis.json"
 validate(config, "schemas/config.schema.json", set_default=True)
 
-containerized: "docker://krabbani/segdupannotation2:1.3.2.s"
+containerized: "docker://krabbani/segdupannotation2:1.3.3.s"
 
 ### Variables & Constants
 species=config["species"]
